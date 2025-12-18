@@ -5,6 +5,5 @@ require_once '../core/Auth.php';
 $auth = new Auth();
 $auth->logout();
 
-header('Location: login.php');
-exit;
+redirect(ADMIN_URL . '/login.php');
 ?>
