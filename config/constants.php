@@ -148,31 +148,76 @@ define('MONTHS_AR', [
     12 => 'ديسمبر'
 ]);
 
+// ====================================================================
 // Helper Functions
-function formatCurrency($amount) {
-    return number_format($amount, 2) . CURRENCY_SYMBOL;
+// ====================================================================
+
+/**
+ * تنسيق العملة
+ */
+function formatCurrency($amount, $currency = null) {
+    $currency = $currency ?? CURRENCY_SYMBOL;
+    return number_format($amount, 2) . ' ' . $currency;
 }
 
+/**
+ * تنسيق المبلغ (اسم بديل)
+ */
+function formatMoney($amount, $currency = null) {
+    return formatCurrency($amount, $currency);
+}
+
+/**
+ * تنسيق الأرقام مع فواصل
+ */
+function formatNumber($number, $decimals = 0) {
+    return number_format($number, $decimals);
+}
+
+/**
+ * تنسيق التاريخ
+ */
 function formatDate($date, $format = 'Y-m-d') {
+    if (empty($date) || $date == '0000-00-00' || $date == '0000-00-00 00:00:00') {
+        return '-';
+    }
     return date($format, strtotime($date));
 }
 
-function formatDateTime($datetime) {
-    return date('Y-m-d H:i', strtotime($datetime));
+/**
+ * تنسيق التاريخ والوقت
+ */
+function formatDateTime($datetime, $format = 'Y-m-d H:i') {
+    if (empty($datetime) || $datetime == '0000-00-00 00:00:00') {
+        return '-';
+    }
+    return date($format, strtotime($datetime));
 }
 
+/**
+ * توليد رقم حجز
+ */
 function generateRentalNumber() {
     return 'RNT-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 }
 
+/**
+ * توليد رقم دفعة
+ */
 function generatePaymentNumber() {
     return 'PAY-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 }
 
+/**
+ * توليد رقم حجز موقع
+ */
 function generateBookingNumber() {
     return 'BKG-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 }
 
+/**
+ * حساب الأيام بين تاريخين
+ */
 function calculateDays($start_date, $end_date) {
     $start = new DateTime($start_date);
     $end = new DateTime($end_date);
@@ -180,6 +225,9 @@ function calculateDays($start_date, $end_date) {
     return $diff->days + 1; // Include both start and end date
 }
 
+/**
+ * حساب غرامة التأخير
+ */
 function calculateLateFee($end_date, $return_date, $fee_per_day = LATE_FEE_PER_DAY) {
     $end = new DateTime($end_date);
     $return = new DateTime($return_date);
@@ -192,32 +240,58 @@ function calculateLateFee($end_date, $return_date, $fee_per_day = LATE_FEE_PER_D
     return $diff->days * $fee_per_day;
 }
 
+/**
+ * تنظيف المدخلات
+ */
 function sanitizeInput($data) {
+    if (is_array($data)) {
+        return array_map('sanitizeInput', $data);
+    }
     $data = trim($data);
     $data = stripslashes($data);
     $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
     return $data;
 }
 
+/**
+ * إعادة التوجيه
+ */
 function redirect($url) {
-    header("Location: " . $url);
-    exit();
+    if (!headers_sent()) {
+        header("Location: " . $url);
+        exit();
+    } else {
+        echo '<script>window.location.href="' . $url . '";</script>';
+        exit();
+    }
 }
 
+/**
+ * التحقق من تسجيل الدخول
+ */
 function isLoggedIn() {
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
+/**
+ * التحقق من صلاحيات المدير
+ */
 function isAdmin() {
     return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 }
 
+/**
+ * فحص المصادقة
+ */
 function checkAuth() {
     if (!isLoggedIn()) {
         redirect(ADMIN_URL . '/login.php');
     }
 }
 
+/**
+ * فحص صلاحيات المدير
+ */
 function checkAdminAuth() {
     checkAuth();
     if (!isAdmin()) {
