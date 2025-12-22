@@ -38,21 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>تسجيل الدخول - <?php echo SITE_NAME; ?></title>
     
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts - Cairo -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
             --primary: #FF5722;
             --primary-dark: #E64A19;
-            --dark: #121212;
+            --primary-light: #FF7043;
+            --dark: #1a1a2e;
+            --darker: #16213e;
+            --success: #00C853;
         }
 
         * {
@@ -63,17 +66,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
         body {
             font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #121212 0%, #1a1a1a 100%);
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, #0f3460 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
+            padding: 15px;
         }
 
-        /* Animated Background Bubbles */
-        .glass-bubbles {
+        /* Animated Background Pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 87, 34, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 87, 34, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 87, 34, 0.1) 0%, transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            z-index: 0;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        /* Floating Cars Animation */
+        .floating-cars {
             position: fixed;
             width: 100%;
             height: 100%;
@@ -82,167 +107,252 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             pointer-events: none;
         }
 
-        .glass-bubble {
+        .car-icon {
             position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 87, 34, 0.15) 0%, rgba(255, 87, 34, 0) 70%);
-            animation: floatBubble 20s infinite linear;
+            font-size: 40px;
+            color: rgba(255, 87, 34, 0.1);
+            animation: floatCar 20s infinite linear;
         }
 
-        .glass-bubble:nth-child(1) { width: 80px; height: 80px; left: 10%; animation-duration: 15s; }
-        .glass-bubble:nth-child(2) { width: 120px; height: 120px; left: 70%; animation-duration: 20s; animation-delay: 2s; }
-        .glass-bubble:nth-child(3) { width: 100px; height: 100px; left: 40%; animation-duration: 18s; animation-delay: 4s; }
-        .glass-bubble:nth-child(4) { width: 150px; height: 150px; left: 80%; animation-duration: 22s; animation-delay: 1s; }
-        .glass-bubble:nth-child(5) { width: 90px; height: 90px; left: 25%; animation-duration: 17s; animation-delay: 3s; }
+        .car-icon:nth-child(1) { left: 10%; animation-duration: 18s; animation-delay: 0s; }
+        .car-icon:nth-child(2) { left: 30%; animation-duration: 22s; animation-delay: 4s; }
+        .car-icon:nth-child(3) { left: 50%; animation-duration: 20s; animation-delay: 2s; }
+        .car-icon:nth-child(4) { left: 70%; animation-duration: 24s; animation-delay: 6s; }
+        .car-icon:nth-child(5) { left: 90%; animation-duration: 19s; animation-delay: 3s; }
 
-        @keyframes floatBubble {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.5; }
-            90% { opacity: 0.5; }
-            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        @keyframes floatCar {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
         }
 
         .login-container {
             position: relative;
             z-index: 1;
-            max-width: 450px;
             width: 100%;
-            padding: 20px;
+            max-width: 480px;
         }
 
         .login-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            animation: slideDown 0.5s ease-out;
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
         }
 
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light), var(--primary));
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .logo-container {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
-        .logo-icon {
-            width: 80px;
-            height: 80px;
+        .logo-image {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 20px;
+            border-radius: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.5rem;
+            box-shadow: 0 10px 30px rgba(255, 87, 34, 0.4),
+                        0 0 0 8px rgba(255, 87, 34, 0.1);
+            animation: logoPulse 3s ease-in-out infinite;
+            position: relative;
+        }
+
+        .logo-image::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+            animation: logoShine 3s infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes logoShine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(200%) rotate(45deg); }
+        }
+
+        .logo-image i {
+            font-size: 4rem;
             color: white;
-            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255, 87, 34, 0); }
-        }
-
-        .logo-container h2 {
-            font-weight: bold;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 5px;
+        .logo-container h1 {
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 8px;
             font-size: 1.8rem;
+            letter-spacing: -0.5px;
         }
 
         .logo-container p {
-            color: #ccc;
+            color: #666;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .form-label {
+            color: var(--dark);
+            font-weight: 600;
+            margin-bottom: 8px;
             font-size: 0.9rem;
         }
 
-        .form-control {
-            background: rgba(255, 255, 255, 0.05) !important;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            color: white !important;
-            border-radius: 10px !important;
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group-text {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-left: none;
+            color: var(--primary);
             padding: 12px 15px;
-            transition: all 0.3s ease;
+            border-radius: 12px 0 0 12px;
+            transition: all 0.3s;
+        }
+
+        .form-control {
+            background: white !important;
+            border: 2px solid #e0e0e0 !important;
+            border-right: none !important;
+            color: var(--dark) !important;
+            border-radius: 0 12px 12px 0 !important;
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
         }
 
         .form-control:focus {
-            background: rgba(255, 255, 255, 0.1) !important;
             border-color: var(--primary) !important;
-            box-shadow: 0 0 0 0.25rem rgba(255, 87, 34, 0.25) !important;
-            color: white !important;
+            box-shadow: none !important;
+        }
+
+        .form-control:focus + .input-group-text,
+        .input-group:focus-within .input-group-text {
+            border-color: var(--primary);
         }
 
         .form-control::placeholder { color: #999; }
 
-        .form-label { color: white; font-weight: 600; }
-
-        .input-group-text {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: var(--primary);
-            border-radius: 10px 0 0 10px !important;
+        .password-toggle {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-right: none;
+            cursor: pointer;
+            padding: 12px 15px;
+            transition: all 0.3s;
         }
 
-        .input-group .form-control {
-            border-right: none !important;
-            border-radius: 0 10px 10px 0 !important;
+        .password-toggle:hover {
+            background: #f8f9fa;
+            color: var(--primary);
         }
 
         .btn-login {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border: none;
             color: white;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-weight: 600;
+            padding: 14px 30px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
             transition: all 0.3s ease;
             width: 100%;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 15px rgba(255, 87, 34, 0.3);
         }
 
         .btn-login::before {
             content: '';
             position: absolute;
             top: 0;
-            left: -100%;
+            right: -100%;
             width: 100%;
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: 0.5s;
+            transition: 0.6s;
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 87, 34, 0.4);
+            box-shadow: 0 8px 25px rgba(255, 87, 34, 0.4);
         }
 
-        .btn-login:hover::before { left: 100%; }
+        .btn-login:hover::before { right: 100%; }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
 
         .alert {
-            background: rgba(220, 53, 69, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(220, 53, 69, 0.5);
-            border-right: 4px solid #dc3545;
-            border-radius: 10px;
-            color: white;
-            padding: 12px 15px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+            border: 2px solid #ffcdd2;
+            border-right: 4px solid #f44336;
+            border-radius: 12px;
+            color: #d32f2f;
+            padding: 14px 18px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .form-check {
             margin-bottom: 20px;
         }
 
         .form-check-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
         }
 
         .form-check-input:checked {
@@ -250,40 +360,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             border-color: var(--primary);
         }
 
-        .form-check-label { color: #ccc; }
+        .form-check-label {
+            color: #666;
+            cursor: pointer;
+            margin-right: 8px;
+            user-select: none;
+        }
 
         .footer-text {
             text-align: center;
-            margin-top: 20px;
-            color: #999;
+            margin-top: 25px;
+            color: rgba(255, 255, 255, 0.7);
             font-size: 0.85rem;
         }
 
+        .footer-text p {
+            margin: 5px 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Mobile Responsive */
         @media (max-width: 576px) {
-            .login-card { padding: 30px 20px; }
-            .logo-icon { width: 60px; height: 60px; font-size: 2rem; }
-            .logo-container h2 { font-size: 1.5rem; }
+            body { padding: 10px; }
+            
+            .login-card {
+                padding: 30px 20px;
+                border-radius: 20px;
+            }
+            
+            .logo-image {
+                width: 100px;
+                height: 100px;
+                border-radius: 25px;
+            }
+            
+            .logo-image i { font-size: 3rem; }
+            
+            .logo-container h1 { font-size: 1.5rem; }
+            
+            .logo-container p { font-size: 0.85rem; }
+            
+            .input-group-text,
+            .form-control,
+            .password-toggle {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .btn-login {
+                padding: 12px 25px;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .login-card { padding: 25px 15px; }
+            .logo-image { width: 80px; height: 80px; }
+            .logo-image i { font-size: 2.5rem; }
+        }
+
+        /* Touch Optimization */
+        @media (hover: none) and (pointer: coarse) {
+            .btn-login:active {
+                transform: scale(0.98);
+            }
+            
+            .password-toggle:active {
+                background: #e0e0e0;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Animated Background -->
-    <div class="glass-bubbles">
-        <div class="glass-bubble"></div>
-        <div class="glass-bubble"></div>
-        <div class="glass-bubble"></div>
-        <div class="glass-bubble"></div>
-        <div class="glass-bubble"></div>
+    <div class="floating-cars">
+        <i class="fas fa-car car-icon"></i>
+        <i class="fas fa-car-side car-icon"></i>
+        <i class="fas fa-taxi car-icon"></i>
+        <i class="fas fa-truck car-icon"></i>
+        <i class="fas fa-bus car-icon"></i>
     </div>
 
     <div class="login-container">
         <div class="login-card">
             <!-- Logo -->
             <div class="logo-container">
-                <div class="logo-icon">
+                <div class="logo-image">
                     <i class="fas fa-car"></i>
                 </div>
-                <h2><?php echo SITE_NAME; ?></h2>
+                <h1>نظام تأجير السيارات</h1>
                 <p>🇵🇸 مرحباً بك! سجّل دخولك للمتابعة</p>
             </div>
 
@@ -295,37 +460,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             <?php endif; ?>
 
             <!-- Login Form -->
-            <form method="POST" action="">
+            <form method="POST" action="" autocomplete="on">
                 <div class="mb-3">
                     <label class="form-label">اسم المستخدم أو البريد</label>
                     <div class="input-group">
+                        <input type="text" name="username" class="form-control" 
+                               placeholder="أدخل اسم المستخدم" 
+                               required 
+                               autofocus
+                               autocomplete="username">
                         <span class="input-group-text">
                             <i class="fas fa-user"></i>
                         </span>
-                        <input type="text" name="username" class="form-control" 
-                               placeholder="أدخل اسم المستخدم" required autofocus>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">كلمة المرور</label>
                     <div class="input-group">
+                        <input type="password" 
+                               name="password" 
+                               id="password" 
+                               class="form-control"
+                               placeholder="أدخل كلمة المرور" 
+                               required
+                               autocomplete="current-password">
+                        <span class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="toggleIcon"></i>
+                        </span>
                         <span class="input-group-text">
                             <i class="fas fa-lock"></i>
-                        </span>
-                        <input type="password" name="password" id="password" class="form-control"
-                               placeholder="أدخل كلمة المرور" required>
-                        <span class="input-group-text" onclick="togglePassword()" style="cursor: pointer;">
-                            <i class="fas fa-eye" id="toggleIcon"></i>
                         </span>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                        <label class="form-check-label" for="remember">تذكرني</label>
-                    </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                    <label class="form-check-label" for="remember">
+                        تذكرني
+                    </label>
                 </div>
 
                 <button type="submit" name="login" class="btn btn-login">
@@ -336,8 +509,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         </div>
 
         <div class="footer-text">
-            <p class="mb-1">© 2024 <?php echo SITE_NAME; ?> - جميع الحقوق محفوظة</p>
-            <p class="mb-0"><small>🇵🇸 صُنع بكل حب في فلسطين</small></p>
+            <p>© 2024 نظام تأجير السيارات - جميع الحقوق محفوظة</p>
+            <p>🇵🇸 صُنع بكل حب في فلسطين</p>
         </div>
     </div>
 
@@ -356,6 +529,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 icon.classList.add('fa-eye');
             }
         }
+
+        // Prevent zoom on input focus (iOS)
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.fontSize = '16px';
+            });
+        });
     </script>
 </body>
 </html>
