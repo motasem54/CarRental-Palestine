@@ -130,6 +130,12 @@ define('DEFAULT_ADMIN_PASSWORD', 'Admin@123');
 // Load database
 require_once __DIR__ . '/database.php';
 
+// Load constants (car types, statuses, etc.)
+require_once __DIR__ . '/constants.php';
+
+// Load helper functions
+require_once __DIR__ . '/functions.php';
+
 // Auto-create upload directories
 $uploadDirs = [
     UPLOADS_PATH,
