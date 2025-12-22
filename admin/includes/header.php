@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
+$user_name = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'مستخدم';
+$user_initial = mb_substr($user_name, 0, 1);
 ?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -229,10 +231,12 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s;
+            text-decoration: none;
         }
 
-        .user-profile:hover { background: var(--primary); }
+        .user-profile:hover { background: var(--dark); }
         .user-profile:hover .user-name { color: white; }
+        .user-profile:hover .user-avatar { background: var(--primary); }
 
         .user-avatar {
             width: 40px;
@@ -244,12 +248,39 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             justify-content: center;
             color: white;
             font-weight: bold;
+            transition: all 0.3s;
         }
 
         .user-name {
             font-weight: 600;
             color: var(--dark);
             transition: all 0.3s;
+        }
+
+        /* Logout Button */
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+            color: white;
+        }
+
+        .logout-btn i {
+            font-size: 1rem;
         }
 
         /* Cards */
@@ -343,6 +374,12 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             }
             .main-content {
                 margin-right: 0;
+            }
+            .logout-btn span {
+                display: none;
+            }
+            .user-name {
+                display: none;
             }
         }
     </style>
