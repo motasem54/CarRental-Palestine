@@ -30,9 +30,9 @@ include 'includes/sidebar.php';
             <p>متابعة صيانة السيارات والإصلاحات</p>
         </div>
         <div class="top-bar-right">
-            <button class="btn btn-primary">
+            <a href="maintenance_add.php" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>إضافة صيانة
-            </button>
+            </a>
         </div>
     </div>
 
@@ -106,42 +106,48 @@ include 'includes/sidebar.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($maintenances as $index => $m): ?>
-                    <tr>
-                        <td><?php echo $index + 1; ?></td>
-                        <td>
-                            <?php echo $m['brand'] . ' ' . $m['model']; ?><br>
-                            <small class="text-muted"><?php echo $m['plate_number']; ?></small>
-                        </td>
-                        <td><span class="badge bg-info"><?php echo MAINTENANCE_TYPES[$m['type']]; ?></span></td>
-                        <td><?php echo substr($m['description'], 0, 50); ?>...</td>
-                        <td><?php echo formatDate($m['maintenance_date'], 'd/m/Y'); ?></td>
-                        <td><strong class="text-danger"><?php echo formatCurrency($m['cost']); ?></strong></td>
-                        <td>
-                            <?php
-                            $statusColors = [
-                                'pending' => 'warning',
-                                'in_progress' => 'info',
-                                'completed' => 'success'
-                            ];
-                            $color = $statusColors[$m['status']];
-                            ?>
-                            <span class="badge bg-<?php echo $color; ?>">
-                                <?php echo MAINTENANCE_STATUS[$m['status']]; ?>
-                            </span>
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-info" title="عرض">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-primary" title="تعديل">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                    <?php if (count($maintenances) > 0): ?>
+                        <?php foreach ($maintenances as $index => $m): ?>
+                        <tr>
+                            <td><?php echo $index + 1; ?></td>
+                            <td>
+                                <?php echo $m['brand'] . ' ' . $m['model']; ?><br>
+                                <small class="text-muted"><?php echo $m['plate_number']; ?></small>
+                            </td>
+                            <td><span class="badge bg-info"><?php echo MAINTENANCE_TYPES[$m['type']]; ?></span></td>
+                            <td><?php echo mb_substr($m['description'], 0, 40); ?>...</td>
+                            <td><?php echo formatDate($m['maintenance_date'], 'd/m/Y'); ?></td>
+                            <td><strong class="text-danger"><?php echo formatCurrency($m['cost']); ?></strong></td>
+                            <td>
+                                <?php
+                                $statusColors = [
+                                    'pending' => 'warning',
+                                    'in_progress' => 'info',
+                                    'completed' => 'success'
+                                ];
+                                $color = $statusColors[$m['status']];
+                                ?>
+                                <span class="badge bg-<?php echo $color; ?>">
+                                    <?php echo MAINTENANCE_STATUS[$m['status']]; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="maintenance_edit.php?id=<?php echo $m['id']; ?>" class="btn btn-sm btn-primary" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-tools fa-3x mb-3 d-block"></i>
+                                لا توجد سجلات صيانة
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
