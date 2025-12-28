@@ -11,12 +11,25 @@ if (!isset($_SESSION['user_id'])) {
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 $user_name = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'مستخدم';
 $user_initial = mb_substr($user_name, 0, 1);
+
+// Load dynamic colors
+$db = Database::getInstance()->getConnection();
+try {
+    $stmt = $db->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('site_primary_color', 'site_secondary_color')");
+    $color_settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    
+    $primary_color = $color_settings['site_primary_color'] ?? '#FF5722';
+    $secondary_color = $color_settings['site_secondary_color'] ?? '#E64A19';
+} catch (Exception $e) {
+    $primary_color = '#FF5722';
+    $secondary_color = '#E64A19';
+}
 ?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title><?php echo $page_title ?? SITE_NAME; ?></title>
     
     <!-- Bootstrap 5 RTL -->
@@ -30,9 +43,9 @@ $user_initial = mb_substr($user_name, 0, 1);
     
     <style>
         :root {
-            --primary: #FF5722;
-            --primary-dark: #E64A19;
-            --primary-light: #FF8A65;
+            --primary: <?php echo $primary_color; ?>;
+            --primary-dark: <?php echo $secondary_color; ?>;
+            --primary-light: <?php echo adjustBrightness($primary_color, 30); ?>;
             --dark: #121212;
             --dark-light: #1a1a1a;
             --sidebar-width: 280px;
@@ -163,6 +176,7 @@ $user_initial = mb_substr($user_name, 0, 1);
             margin-right: var(--sidebar-width);
             min-height: 100vh;
             padding: 20px;
+            transition: margin-right 0.3s ease;
         }
 
         /* Top Bar */
@@ -175,6 +189,8 @@ $user_initial = mb_substr($user_name, 0, 1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .welcome-text h5 {
@@ -193,33 +209,7 @@ $user_initial = mb_substr($user_name, 0, 1);
             display: flex;
             align-items: center;
             gap: 15px;
-        }
-
-        .notification-icon {
-            position: relative;
-            font-size: 1.3rem;
-            color: var(--dark);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 10px;
-            transition: all 0.3s;
-        }
-
-        .notification-icon:hover {
-            background: #f5f5f5;
-            color: var(--primary);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: var(--primary);
-            color: white;
-            font-size: 0.65rem;
-            padding: 2px 5px;
-            border-radius: 10px;
-            font-weight: bold;
+            flex-wrap: wrap;
         }
 
         .user-profile {
@@ -255,32 +245,6 @@ $user_initial = mb_substr($user_name, 0, 1);
             font-weight: 600;
             color: var(--dark);
             transition: all 0.3s;
-        }
-
-        /* Logout Button */
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .logout-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
-            color: white;
-        }
-
-        .logout-btn i {
-            font-size: 1rem;
         }
 
         /* Cards */
@@ -355,6 +319,7 @@ $user_initial = mb_substr($user_name, 0, 1);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow-x: auto;
         }
 
         .table thead th {
@@ -362,27 +327,98 @@ $user_initial = mb_substr($user_name, 0, 1);
             color: white;
             border: none;
             font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Mobile Sidebar Toggle */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            z-index: 1001;
+            box-shadow: 0 4px 15px rgba(255,87,34,0.4);
         }
 
         /* Mobile */
-        @media (max-width: 768px) {
+        @media (max-width: 991px) {
             .sidebar {
                 transform: translateX(100%);
             }
+            
             .sidebar.active {
                 transform: translateX(0);
             }
+            
             .main-content {
                 margin-right: 0;
+                padding: 80px 15px 20px 15px;
             }
-            .logout-btn span {
-                display: none;
+            
+            .mobile-toggle {
+                display: block;
             }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .top-bar-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
             .user-name {
                 display: none;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
             }
         }
     </style>
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
 <body>
+    <!-- Mobile Toggle -->
+    <button class="mobile-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+<?php
+// Helper function for color adjustment
+function adjustBrightness($hex, $steps) {
+    $hex = str_replace('#', '', $hex);
+    $r = hexdec(substr($hex, 0, 2));
+    $g = hexdec(substr($hex, 2, 2));
+    $b = hexdec(substr($hex, 4, 2));
+    
+    $r = max(0, min(255, $r + $steps));
+    $g = max(0, min(255, $g + $steps));
+    $b = max(0, min(255, $b + $steps));
+    
+    return '#' . str_pad(dechex($r), 2, '0', STR_PAD_LEFT)
+                . str_pad(dechex($g), 2, '0', STR_PAD_LEFT)
+                . str_pad(dechex($b), 2, '0', STR_PAD_LEFT);
+}
+?>
