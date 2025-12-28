@@ -36,11 +36,11 @@ $user_initial = mb_substr($user_name, 0, 1);
             </a>
         </li>
 
-        <div class="menu-section-title">الحجوزات والإيجار</div>
+        <div class="menu-section-title">التأجير</div>
         <li class="menu-item">
             <a href="rentals.php" class="menu-link <?php echo $current_page == 'rentals' ? 'active' : ''; ?>">
                 <i class="fas fa-calendar-alt"></i>
-                <span>الحجوزات</span>
+                <span>التأجيرات</span>
             </a>
         </li>
         <li class="menu-item">
@@ -102,6 +102,12 @@ $user_initial = mb_substr($user_name, 0, 1);
             <a href="branches.php" class="menu-link <?php echo $current_page == 'branches' ? 'active' : ''; ?>">
                 <i class="fas fa-building"></i>
                 <span>الفروع</span>
+            </a>
+        </li>
+        <li class="menu-item">
+            <a href="system_appearance.php" class="menu-link <?php echo $current_page == 'system_appearance' ? 'active' : ''; ?>">
+                <i class="fas fa-palette"></i>
+                <span>مظهر النظام</span>
             </a>
         </li>
         <li class="menu-item">
