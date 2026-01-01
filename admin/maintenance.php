@@ -54,6 +54,9 @@ include 'includes/sidebar.php';
             <p>متابعة صيانة السيارات والإصلاحات</p>
         </div>
         <div class="top-bar-right">
+            <a href="maintenance_print.php" class="btn btn-secondary" target="_blank">
+                <i class="fas fa-print me-2"></i>طباعة التقرير
+            </a>
             <a href="maintenance_add.php" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>إضافة صيانة
             </a>
