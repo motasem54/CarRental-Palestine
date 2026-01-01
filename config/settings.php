@@ -32,8 +32,8 @@ define('CURRENCY_SYMBOL', '₪');
 define('CURRENCY_NAME', 'شيكل');
 define('TIMEZONE', 'Asia/Jerusalem');
 
-// Palestinian Cities
-$PALESTINIAN_CITIES = [
+// Palestinian Cities - Fixed constant name
+define('PALESTINE_CITIES', [
     'رام الله',
     'نابلس',
     'الخليل',
@@ -46,7 +46,10 @@ $PALESTINIAN_CITIES = [
     'سلفيت',
     'طوباس',
     'يطا'
-];
+]);
+
+// Keep old variable for backward compatibility
+$PALESTINIAN_CITIES = PALESTINE_CITIES;
 
 // Contact Information
 define('COMPANY_PHONE', '+970599123456');
@@ -89,6 +92,7 @@ define('MIN_RENTAL_DAYS', 1);
 define('MAX_RENTAL_DAYS', 90);
 define('TAX_RATE', 16); // 16% VAT
 define('LATE_FEE_PER_DAY', 50); // 50 ILS per day
+define('LATE_RETURN_FEE', 50); // Alias for compatibility
 
 // Loyalty Program
 define('POINTS_PER_SHEKEL', 1);
