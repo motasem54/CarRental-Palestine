@@ -25,7 +25,7 @@ if (!$car) {
 
 // Get all rental records for this car
 $stmt = $db->prepare("
-    SELECT r.*, c.name as customer_name, c.phone as customer_phone
+    SELECT r.*, c.full_name as customer_name, c.phone as customer_phone
     FROM rentals r
     JOIN customers c ON r.customer_id = c.id
     WHERE r.car_id = ?
