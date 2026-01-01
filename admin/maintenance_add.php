@@ -435,11 +435,21 @@ function loadLastMaintenance(carId) {
                     ${m.description ? `<div class="mt-2"><strong>الوصف:</strong> ${m.description}</div>` : ''}
                 `;
             } else {
-                content.innerHTML = '<p style="margin:0; color:#666;">✨ لا توجد صيانة سابقة لهذه السيارة</p>';
+                // عرض رسالة جميلة لما ما في صيانة
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">✨</div>
+                        <p style="margin:0; color:#666; font-size: 1.1rem;">
+                            <strong>لا توجد صيانة سابقة لهذه السيارة</strong>
+                        </p>
+                        <small style="color: #999;">هذه ستكون أول صيانة في السجل</small>
+                    </div>
+                `;
             }
         })
         .catch(error => {
-            content.innerHTML = '<p style="margin:0; color:#f44336;">⚠️ خطأ في تحميل البيانات</p>';
+            content.innerHTML = '<p style="margin:0; color:#f44336; text-align:center;">⚠️ خطأ في تحميل البيانات</p>';
+            console.error('Error:', error);
         });
 }
 
