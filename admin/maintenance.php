@@ -18,6 +18,30 @@ $stmt = $db->query("
 ");
 $maintenances = $stmt->fetchAll();
 
+// Maintenance type names in Arabic
+$maintenanceTypeNames = [
+    'oil_change' => 'تغيير زيت',
+    'regular_maintenance' => 'صيانة دورية',
+    'tire_change' => 'تغيير إطارات',
+    'inspection' => 'فحص دوري',
+    'brake_repair' => 'إصلاح فرامل',
+    'engine_repair' => 'إصلاح محرك',
+    'transmission' => 'ناقل الحركة',
+    'electrical' => 'كهرباء',
+    'ac_repair' => 'إصلاح مكيف',
+    'body_work' => 'أعمال صفيح',
+    'repair' => 'إصلاح عام',
+    'other' => 'أخرى'
+];
+
+// Status names in Arabic
+$statusNames = [
+    'pending' => 'معلقة',
+    'in_progress' => 'قيد التنفيذ',
+    'completed' => 'مكتملة',
+    'cancelled' => 'ملغاة'
+];
+
 $page_title = 'الصيانة - ' . SITE_NAME;
 include 'includes/header.php';
 include 'includes/sidebar.php';
@@ -43,7 +67,9 @@ include 'includes/sidebar.php';
         $totalCost = 0;
         foreach ($maintenances as $m) {
             $stats['total']++;
-            $stats[$m['status']]++;
+            if (isset($stats[$m['status']])) {
+                $stats[$m['status']]++;
+            }
             $totalCost += $m['cost'];
         }
         ?>
@@ -77,16 +103,16 @@ include 'includes/sidebar.php';
         <div class="col-md-3">
             <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(244, 67, 54, 0.1); color: #F44336;">
-                    <i class="fas fa-dollar-sign"></i>
+                    <i class="fas fa-shekel-sign"></i>
                 </div>
-                <div class="stat-value"><?php echo formatCurrency($totalCost); ?></div>
+                <div class="stat-value"><?php echo number_format($totalCost, 2); ?> ₪</div>
                 <div class="stat-label">إجمالي التكلفة</div>
             </div>
         </div>
     </div>
 
     <!-- Maintenance Table -->
-    <div class="table-container">
+    <div class="stat-card">
         <h5 class="mb-3">
             <i class="fas fa-list text-primary"></i>
             سجل الصيانة
@@ -111,28 +137,41 @@ include 'includes/sidebar.php';
                         <tr>
                             <td><?php echo $index + 1; ?></td>
                             <td>
-                                <?php echo $m['brand'] . ' ' . $m['model']; ?><br>
+                                <strong><?php echo $m['brand'] . ' ' . $m['model']; ?></strong><br>
                                 <small class="text-muted"><?php echo $m['plate_number']; ?></small>
                             </td>
-                            <td><span class="badge bg-info"><?php echo MAINTENANCE_TYPES[$m['type']]; ?></span></td>
-                            <td><?php echo mb_substr($m['description'], 0, 40); ?>...</td>
-                            <td><?php echo formatDate($m['maintenance_date'], 'd/m/Y'); ?></td>
-                            <td><strong class="text-danger"><?php echo formatCurrency($m['cost']); ?></strong></td>
+                            <td>
+                                <span class="badge bg-info">
+                                    <?php echo isset($maintenanceTypeNames[$m['maintenance_type']]) ? $maintenanceTypeNames[$m['maintenance_type']] : $m['maintenance_type']; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php 
+                                $desc = $m['description'];
+                                echo mb_strlen($desc) > 40 ? mb_substr($desc, 0, 40) . '...' : $desc;
+                                ?>
+                            </td>
+                            <td><?php echo date('d/m/Y', strtotime($m['maintenance_date'])); ?></td>
+                            <td><strong class="text-danger"><?php echo number_format($m['cost'], 2); ?> ₪</strong></td>
                             <td>
                                 <?php
                                 $statusColors = [
                                     'pending' => 'warning',
                                     'in_progress' => 'info',
-                                    'completed' => 'success'
+                                    'completed' => 'success',
+                                    'cancelled' => 'secondary'
                                 ];
-                                $color = $statusColors[$m['status']];
+                                $color = isset($statusColors[$m['status']]) ? $statusColors[$m['status']] : 'secondary';
                                 ?>
                                 <span class="badge bg-<?php echo $color; ?>">
-                                    <?php echo MAINTENANCE_STATUS[$m['status']]; ?>
+                                    <?php echo isset($statusNames[$m['status']]) ? $statusNames[$m['status']] : $m['status']; ?>
                                 </span>
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
+                                    <a href="maintenance_view.php?id=<?php echo $m['id']; ?>" class="btn btn-sm btn-info" title="عرض">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                     <a href="maintenance_edit.php?id=<?php echo $m['id']; ?>" class="btn btn-sm btn-primary" title="تعديل">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -143,8 +182,11 @@ include 'includes/sidebar.php';
                     <?php else: ?>
                         <tr>
                             <td colspan="8" class="text-center text-muted py-5">
-                                <i class="fas fa-tools fa-3x mb-3 d-block"></i>
-                                لا توجد سجلات صيانة
+                                <i class="fas fa-tools fa-3x mb-3 d-block" style="opacity: 0.3;"></i>
+                                <p style="font-size: 1.1rem;">لا توجد سجلات صيانة</p>
+                                <a href="maintenance_add.php" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus me-2"></i>إضافة صيانة جديدة
+                                </a>
                             </td>
                         </tr>
                     <?php endif; ?>

@@ -34,11 +34,15 @@ try {
         LIMIT 1
     ");
     $stmt->execute([$car_id]);
-    $maintenance = $stmt->fetch();
+    $maintenance = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($maintenance) {
-        // Format date
-        $maintenance['maintenance_date'] = formatDate($maintenance['maintenance_date']);
+        // Format date to Arabic format
+        $date = new DateTime($maintenance['maintenance_date']);
+        $maintenance['maintenance_date'] = $date->format('d/m/Y');
+        
+        // Format cost
+        $maintenance['cost'] = number_format($maintenance['cost'], 2);
         
         echo json_encode([
             'success' => true,
@@ -57,7 +61,7 @@ try {
     echo json_encode([
         'success' => false,
         'error' => true,
-        'message' => $e->getMessage()
+        'message' => 'خطأ في تحميل البيانات: ' . $e->getMessage()
     ]);
 }
 ?>
