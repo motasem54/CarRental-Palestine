@@ -21,7 +21,7 @@ $stmt = $db->prepare("
            c.full_name as customer_name, c.phone as customer_phone, 
            c.address as customer_address, c.id_number, c.driver_license,
            car.brand, car.model, car.year, car.color, car.plate_number,
-           car.type as car_type, car.seats, car.transmission,
+           car.type as car_type, car.seats, car.transmission, car.image_url,
            u.full_name as created_by_name
     FROM rentals r
     JOIN customers c ON r.customer_id = c.id
@@ -43,11 +43,11 @@ $contractRecord = $stmt->fetch();
 $with_promissory = ($contractRecord['has_promissory_note'] ?? 0) == 1;
 
 // Safe values
-$rental['base_amount'] = $rental['base_amount'] ?? ($rental['total_amount'] - ($rental['tax_amount'] ?? 0) - ($rental['insurance_amount'] ?? 0));
+$rental['base_amount'] = $rental['base_amount'] ?? ($rental['total_amount'] - ($rental['insurance_amount'] ?? 0));
 $rental['insurance_amount'] = $rental['insurance_amount'] ?? 0;
-$rental['tax_amount'] = $rental['tax_amount'] ?? 0;
 $rental['discount_amount'] = $rental['discount_amount'] ?? 0;
 $rental['paid_amount'] = $rental['paid_amount'] ?? 0;
+$rental['tax_amount'] = 0; // No Tax
 
 $remaining_amount = $rental['total_amount'] - $rental['paid_amount'];
 $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
@@ -248,7 +248,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             font-weight: 900;
         }
         
-        /* ===== CAR INSPECTION ===== */
+        /* ===== CAR IMAGES INSPECTION ===== */
         .inspection-header {
             background: #1a237e;
             color: white;
@@ -287,13 +287,25 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             border-radius: 4px;
         }
         
-        .car-sketch {
+        .car-image {
+            width: 100%;
+            height: 140px;
+            background: white;
+            border: 2px solid #1a237e;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            object-fit: contain;
+            padding: 5px;
+        }
+        
+        .drawing-canvas {
             width: 100%;
             height: 140px;
             border: 2px dashed #1a237e;
             background: white;
             border-radius: 4px;
-            margin-bottom: 10px;
+            margin-top: 10px;
+            cursor: crosshair;
         }
         
         .drawing-notes {
@@ -303,6 +315,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             background: #fff3e0;
             padding: 8px;
             border-radius: 4px;
+            margin-top: 8px;
         }
         
         /* ===== SIGNATURE SECTION ===== */
@@ -511,9 +524,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
             <tr>
                 <td>عداد الكيلومتر عند الاستلام</td>
-                <td><strong><?php echo $rental['mileage_start'] ?? 0; ?> كم</strong></td>
-                <td>حالة الوقود</td>
-                <td>ممتلئة</td>
+                <td colspan="3"><strong><?php echo $rental['mileage_start'] ?? 0; ?> كم</strong></td>
             </tr>
         </table>
         
@@ -538,7 +549,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
         </table>
         
-        <!-- ===== FINANCIAL ===== -->
+        <!-- ===== FINANCIAL - NO TAX ===== -->
         <div class="section-header">💰 التفاصيل المالية</div>
         <table class="financial-table">
             <tr>
@@ -556,12 +567,8 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
             <?php endif; ?>
             <tr>
-                <td>التأمين</td>
+                <td>رسوم التأمين</td>
                 <td><?php echo formatCurrency($rental['insurance_amount']); ?></td>
-            </tr>
-            <tr>
-                <td>الضريبة (15%)</td>
-                <td><?php echo formatCurrency($rental['tax_amount']); ?></td>
             </tr>
             <tr>
                 <td>المبلغ الإجمالي</td>
@@ -569,38 +576,73 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
         </table>
         
-        <!-- ===== INSPECTION FORM ===== -->
+        <!-- ===== INSPECTION FORM WITH REAL CAR IMAGES ===== -->
         <div class="page-break"></div>
         
-        <div class="inspection-header">🔍 نموذج فحص حالة السيارة - اخترق على الأضرار</div>
+        <div class="inspection-header">🔍 نموذج فحص حالة السيارة - اخترق على الرسومات التالية</div>
         
         <div class="car-images">
             <!-- FRONT -->
             <div class="car-image-item">
                 <div class="car-position">🔴 الجهة الأمامية</div>
-                <canvas id="carFront" class="car-sketch"></canvas>
-                <div class="drawing-notes">اخترق على أي خدوش أو تجنيشات في الأمام</div>
+                <?php if($rental['image_url']): ?>
+                <img src="<?php echo htmlspecialchars($rental['image_url']); ?>" class="car-image" alt="Front">
+                <?php else: ?>
+                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="30" y="40" width="140" height="80" fill="#ddd" stroke="#333" stroke-width="2"/>
+                    <circle cx="60" cy="110" r="15" fill="#333"/>
+                    <circle cx="140" cy="110" r="15" fill="#333"/>
+                    <rect x="50" y="50" width="30" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
+                    <rect x="120" y="50" width="30" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
+                    <polygon points="100,40 130,40 100,20" fill="#666"/>
+                </svg>
+                <?php endif; ?>
+                <canvas id="carFront" class="drawing-canvas"></canvas>
+                <div class="drawing-notes">📋 اخترق على أي خدوش أو تجنيشات في الأمام</div>
             </div>
             
             <!-- BACK -->
             <div class="car-image-item">
                 <div class="car-position">🟡 الجهة الخلفية</div>
-                <canvas id="carBack" class="car-sketch"></canvas>
-                <div class="drawing-notes">اخترق على أي أضرار في الخلف</div>
+                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="30" y="40" width="140" height="80" fill="#ddd" stroke="#333" stroke-width="2"/>
+                    <circle cx="60" cy="110" r="15" fill="#333"/>
+                    <circle cx="140" cy="110" r="15" fill="#333"/>
+                    <rect x="50" y="50" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="1"/>
+                    <rect x="120" y="50" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="1"/>
+                </svg>
+                <canvas id="carBack" class="drawing-canvas"></canvas>
+                <div class="drawing-notes">📋 اخترق على أي أضرار في الخلف</div>
             </div>
             
             <!-- LEFT -->
             <div class="car-image-item">
                 <div class="car-position">🟢 الجانب الأيسر</div>
-                <canvas id="carLeft" class="car-sketch"></canvas>
-                <div class="drawing-notes">اخترق على الجنب الأيسر</div>
+                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="100" cy="100" rx="70" ry="50" fill="#ddd" stroke="#333" stroke-width="2"/>
+                    <circle cx="50" cy="105" r="15" fill="#333"/>
+                    <circle cx="150" cy="105" r="15" fill="#333"/>
+                    <rect x="70" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
+                    <rect x="95" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
+                    <line x1="20" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2"/>
+                </svg>
+                <canvas id="carLeft" class="drawing-canvas"></canvas>
+                <div class="drawing-notes">📋 اخترق على الجنب الأيسر</div>
             </div>
             
             <!-- RIGHT -->
             <div class="car-image-item">
                 <div class="car-position">🔵 الجانب الأيمن</div>
-                <canvas id="carRight" class="car-sketch"></canvas>
-                <div class="drawing-notes">اخترق على الجنب الأيمن</div>
+                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="100" cy="100" rx="70" ry="50" fill="#ddd" stroke="#333" stroke-width="2"/>
+                    <circle cx="50" cy="105" r="15" fill="#333"/>
+                    <circle cx="150" cy="105" r="15" fill="#333"/>
+                    <rect x="70" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
+                    <rect x="95" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
+                    <line x1="20" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2"/>
+                </svg>
+                <canvas id="carRight" class="drawing-canvas"></canvas>
+                <div class="drawing-notes">📋 اخترق على الجانب الأيمن</div>
             </div>
         </div>
         
@@ -613,7 +655,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             3. المستأجر مسؤول عن جميع المخالفات المرورية والغرامات.<br>
             4. غرامة التأخير عند الإعادة: <?php echo formatCurrency(LATE_RETURN_FEE); ?> لكل ساعة.<br>
             5. التأمين ينطبق على الحوادث غير المقصودة فقط.<br>
-            6. أي أضرار متعمدة لا تغطيها بوليصة التأمين.<br>
+            6. أي أضرار متعمدة لا تغطيها بوليشة التأمين.<br>
         </div>
         
         <!-- ===== SIGNATURES ===== -->
