@@ -11,6 +11,7 @@ if (!$auth->isLoggedIn()) {
 $db = Database::getInstance()->getConnection();
 $rental = new Rental($db);
 $error = '';
+$success = '';
 
 // Get available cars
 $carsStmt = $db->query("SELECT * FROM cars WHERE status = 'available' ORDER BY brand, model");
@@ -29,20 +30,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'end_date' => $_POST['end_date'],
             'pickup_location' => sanitizeInput($_POST['pickup_location']),
             'return_location' => sanitizeInput($_POST['return_location']),
+            'mileage_current' => (int)$_POST['mileage_current'],
             'notes' => sanitizeInput($_POST['notes'] ?? ''),
-            'discount_code' => sanitizeInput($_POST['discount_code'] ?? ''),
             'user_id' => $_SESSION['user_id']
         ];
+
+        // Get custom rate if provided
+        if (!empty($_POST['custom_rate']) && $_POST['custom_rate'] > 0) {
+            $data['custom_rate'] = (float)$_POST['custom_rate'];
+        }
 
         $rentalId = $rental->createRental($data);
         
         if ($rentalId) {
-            $_SESSION['success'] = 'تم إنشاء الحجز بنجاح';
-            redirect('rentals.php');
+            // Save photos if any
+            if (!empty($_POST['rental_photos'])) {
+                $photos = json_decode($_POST['rental_photos'], true);
+                foreach ($photos as $photo) {
+                    saveRentalPhoto($rentalId, $photo);
+                }
+            }
+
+            $_SESSION['success'] = 'تم إنشاء الحجز بنجاح. اختر نوع العقد الآن.';
+            $_SESSION['rental_id'] = $rentalId;
+            redirect('rental_contract_chooser.php?id=' . $rentalId);
         }
     } catch (Exception $e) {
         $error = 'خطأ في إنشاء الحجز: ' . $e->getMessage();
     }
+}
+
+// Function to save rental photo
+function saveRentalPhoto($rentalId, $photoData) {
+    $db = Database::getInstance()->getConnection();
+    
+    try {
+        // Create upload directory
+        $uploadDir = UPLOADS_PATH . '/rental_photos/' . date('Y-m');
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Decode base64 image
+        $imageData = base64_decode(preg_replace('#^data:image/[^;]+;base64,#', '', $photoData['data']));
+        
+        // Create filename
+        $filename = 'rental_' . $rentalId . '_' . time() . '_' . mt_rand(1000, 9999) . '.jpg';
+        $filepath = $uploadDir . '/' . $filename;
+        
+        // Save image
+        if (file_put_contents($filepath, $imageData)) {
+            // Save to database
+            $stmt = $db->prepare("
+                INSERT INTO rental_photos (rental_id, photo_path, photo_type, description, uploaded_by, uploaded_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            
+            $stmt->execute([
+                $rentalId,
+                '/uploads/rental_photos/' . date('Y-m') . '/' . $filename,
+                $photoData['type'] ?? 'exterior',
+                $photoData['description'] ?? '',
+                $_SESSION['user_id']
+            ]);
+            
+            return true;
+        }
+    } catch (Exception $e) {
+        error_log('Error saving rental photo: ' . $e->getMessage());
+    }
+    
+    return false;
 }
 
 $page_title = 'تأجير جديد - ' . SITE_NAME;
@@ -135,6 +193,13 @@ include 'includes/sidebar.php';
 .car-details {
     font-size: 0.85rem;
     color: #666;
+    margin-bottom: 5px;
+}
+
+.car-mileage {
+    font-size: 0.9rem;
+    color: #FF5722;
+    font-weight: 600;
 }
 
 .car-price {
@@ -200,6 +265,116 @@ include 'includes/sidebar.php';
     border-radius: 5px;
     font-size: 1.1rem;
     font-weight: 700;
+}
+
+.camera-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border: 2px dashed #FF5722;
+}
+
+.camera-container {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 15px;
+}
+
+#cameraVideo {
+    width: 100%;
+    height: auto;
+    background: #000;
+    border-radius: 8px;
+    display: none;
+}
+
+.camera-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.camera-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-camera-start {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-camera-start:hover {
+    background: #45a049;
+}
+
+.btn-camera-stop {
+    background: #f44336;
+    color: white;
+}
+
+.btn-camera-capture {
+    background: #FF5722;
+    color: white;
+}
+
+.btn-camera-capture:hover {
+    background: #E64A19;
+}
+
+.photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.photo-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f0f0f0;
+    aspect-ratio: 1;
+    cursor: pointer;
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-delete {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(244, 67, 54, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: all 0.3s;
+    opacity: 0;
+}
+
+.photo-item:hover .photo-delete {
+    opacity: 1;
+}
+
+.photo-delete:hover {
+    background: rgba(244, 67, 54, 1);
 }
 
 .modal {
@@ -317,6 +492,26 @@ include 'includes/sidebar.php';
 .location-custom input {
     flex: 1;
 }
+
+.mileage-display {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border-left: 4px solid #4CAF50;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.mileage-display .label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.mileage-display .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2e7d32;
+}
 </style>
 
 <div class="main-content">
@@ -338,11 +533,12 @@ include 'includes/sidebar.php';
     <div class="table-container">
         <form method="POST" id="rentalForm">
             <input type="hidden" name="car_id" id="selected_car_id">
+            <input type="hidden" name="rental_photos" id="rental_photos_data" value="[]">
             
             <div class="row g-3">
                 <!-- Car Search -->
                 <div class="col-md-12">
-                    <label class="form-label">🔍 ابحث عن السيارة *</label>
+                    <label class="form-label"><strong>🔍 ابحث عن السيارة *</strong></label>
                     <div class="car-search-container">
                         <input type="text" 
                                id="carSearch" 
@@ -364,35 +560,49 @@ include 'includes/sidebar.php';
                                 </h5>
                                 <p class="mb-1"><strong>اللوحة:</strong> <span id="selectedCarPlate"></span></p>
                                 <p class="mb-1"><strong>اللون:</strong> <span id="selectedCarColor"></span></p>
-                                <p class="mb-0"><strong>النوع:</strong> <span id="selectedCarType"></span></p>
+                                <p class="mb-1"><strong>النوع:</strong> <span id="selectedCarType"></span></p>
+                                <p class="mb-0"><strong>السعات:</strong> <span id="selectedCarSeats"></span></p>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label"><strong>نوع التأجير:</strong></label>
-                                <div class="rental-type-selector">
-                                    <button type="button" class="rental-type-btn active" data-type="daily" data-rate="0">
-                                        <i class="fas fa-calendar-day"></i> يومي
-                                    </button>
-                                    <button type="button" class="rental-type-btn" data-type="weekly" data-rate="0">
-                                        <i class="fas fa-calendar-week"></i> أسبوعي
-                                    </button>
-                                    <button type="button" class="rental-type-btn" data-type="monthly" data-rate="0">
-                                        <i class="fas fa-calendar-alt"></i> شهري
-                                    </button>
+                                <!-- Current Mileage Display -->
+                                <div class="mileage-display">
+                                    <div class="label">📊 العداد الحالي للسيارة:</div>
+                                    <div class="value" id="currentMileage">0</div>
                                 </div>
                                 
-                                <label class="form-label mt-3"><strong>السعر (يمكن التعديل):</strong></label>
-                                <div class="price-editor">
-                                    <input type="number" id="customPrice" class="" min="0" step="0.01" required>
-                                    <span style="font-weight: 700; color: #FF5722;">₪</span>
-                                </div>
+                                <label class="form-label"><strong>⚙️ عداد الاستلام:</strong></label>
+                                <input type="number" id="mileage_current" name="mileage_current" 
+                                       class="form-control" placeholder="أدخل عداد السيارة" required>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Rental Type Selection -->
+                <div class="col-md-12" id="rentalTypeSection" style="display: none;">
+                    <label class="form-label"><strong>📅 نوع التأجير:</strong></label>
+                    <div class="rental-type-selector">
+                        <button type="button" class="rental-type-btn active" data-type="daily" data-rate="0">
+                            <i class="fas fa-calendar-day"></i> يومي
+                        </button>
+                        <button type="button" class="rental-type-btn" data-type="weekly" data-rate="0">
+                            <i class="fas fa-calendar-week"></i> أسبوعي
+                        </button>
+                        <button type="button" class="rental-type-btn" data-type="monthly" data-rate="0">
+                            <i class="fas fa-calendar-alt"></i> شهري
+                        </button>
+                    </div>
+                    
+                    <label class="form-label mt-3"><strong>💰 السعر (يمكن التعديل):</strong></label>
+                    <div class="price-editor">
+                        <input type="number" id="customPrice" class="" min="0" step="0.01" required>
+                        <span style="font-weight: 700; color: #FF5722;">₪</span>
+                    </div>
+                </div>
+
                 <!-- Customer Selection -->
                 <div class="col-md-12">
-                    <label class="form-label">👤 اختر العميل *</label>
+                    <label class="form-label"><strong>👤 اختر العميل *</strong></label>
                     <div style="display: flex; gap: 10px;">
                         <select name="customer_id" id="customer_id" class="form-control" required style="flex: 1;">
                             <option value="">-- اختر العميل --</option>
@@ -410,21 +620,21 @@ include 'includes/sidebar.php';
 
                 <!-- Dates -->
                 <div class="col-md-6">
-                    <label class="form-label">📅 تاريخ الاستلام *</label>
+                    <label class="form-label"><strong>📅 تاريخ الاستلام *</strong></label>
                     <input type="datetime-local" name="start_date" id="start_date" class="form-control" required onchange="calculateTotal()">
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">📅 تاريخ التسليم *</label>
+                    <label class="form-label"><strong>📅 تاريخ التسليم *</strong></label>
                     <input type="datetime-local" name="end_date" id="end_date" class="form-control" required onchange="calculateTotal()">
                 </div>
 
                 <!-- Locations -->
                 <div class="col-md-6">
-                    <label class="form-label">📍 مكان الاستلام</label>
+                    <label class="form-label"><strong>📍 مكان الاستلام</strong></label>
                     <div class="location-custom">
                         <select id="pickup_city" class="form-control">
-                            <option value="">-- اختر المدينة --</option>
+                            <option value="">-- المدينة --</option>
                             <?php foreach (PALESTINE_CITIES as $city): ?>
                             <option value="<?php echo $city; ?>"><?php echo $city; ?></option>
                             <?php endforeach; ?>
@@ -434,10 +644,10 @@ include 'includes/sidebar.php';
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">📍 مكان التسليم</label>
+                    <label class="form-label"><strong>📍 مكان التسليم</strong></label>
                     <div class="location-custom">
                         <select id="return_city" class="form-control">
-                            <option value="">-- اختر المدينة --</option>
+                            <option value="">-- المدينة --</option>
                             <?php foreach (PALESTINE_CITIES as $city): ?>
                             <option value="<?php echo $city; ?>"><?php echo $city; ?></option>
                             <?php endforeach; ?>
@@ -448,8 +658,35 @@ include 'includes/sidebar.php';
 
                 <!-- Notes -->
                 <div class="col-md-12">
-                    <label class="form-label">📝 ملاحظات</label>
+                    <label class="form-label"><strong>📝 ملاحظات</strong></label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="أي ملاحظات إضافية..."></textarea>
+                </div>
+
+                <!-- Camera Section -->
+                <div class="col-md-12">
+                    <div class="camera-section">
+                        <h5><i class="fas fa-camera"></i> صور السيارة 📸</h5>
+                        <p class="text-muted">التقط صور للسيارة من جميع الزوايا قبل حفظ الحجز</p>
+                        
+                        <div class="camera-controls">
+                            <button type="button" class="camera-btn btn-camera-start" onclick="startCamera()">
+                                <i class="fas fa-video"></i> فتح الكاميرا
+                            </button>
+                            <button type="button" class="camera-btn btn-camera-capture" onclick="capturePhoto()" style="display: none;" id="captureBtn">
+                                <i class="fas fa-camera"></i> التقط صورة
+                            </button>
+                            <button type="button" class="camera-btn btn-camera-stop" onclick="stopCamera()" style="display: none;" id="stopBtn">
+                                <i class="fas fa-times"></i> أغلق الكاميرا
+                            </button>
+                        </div>
+                        
+                        <div class="camera-container">
+                            <video id="cameraVideo" playsinline></video>
+                            <canvas id="canvasCapture" style="display: none;"></canvas>
+                        </div>
+                        
+                        <div class="photos-grid" id="photosPreview"></div>
+                    </div>
                 </div>
 
                 <!-- Price Summary -->
@@ -535,6 +772,8 @@ include 'includes/sidebar.php';
 const carsData = <?php echo json_encode($cars); ?>;
 let selectedCar = null;
 let currentRentalType = 'daily';
+let capturedPhotos = [];
+let mediaStream = null;
 
 // Car Search
 document.getElementById('carSearch').addEventListener('input', function(e) {
@@ -564,6 +803,9 @@ document.getElementById('carSearch').addEventListener('input', function(e) {
                         <span>🎨 ${car.color}</span> | 
                         <span>👥 ${car.seats} مقاعد</span>
                     </div>
+                    <div class="car-mileage">
+                        📊 العداد: ${car.current_mileage || 0} كم
+                    </div>
                 </div>
                 <div class="car-price">${parseFloat(car.daily_rate).toFixed(2)}₪/يوم</div>
             </div>
@@ -584,13 +826,19 @@ function selectCar(carId) {
     document.getElementById('carSearch').value = `${selectedCar.brand} ${selectedCar.model} (${selectedCar.year})`;
     document.getElementById('carResults').classList.remove('active');
     
-    // Update selected car info
+    // Update car info
     document.getElementById('selectedCarName').textContent = `${selectedCar.brand} ${selectedCar.model} ${selectedCar.year}`;
     document.getElementById('selectedCarPlate').textContent = selectedCar.plate_number;
     document.getElementById('selectedCarColor').textContent = selectedCar.color;
     document.getElementById('selectedCarType').textContent = selectedCar.type || 'سيارة';
+    document.getElementById('selectedCarSeats').textContent = selectedCar.seats;
+    document.getElementById('currentMileage').textContent = (selectedCar.current_mileage || 0);
     
-    // Update rental type buttons
+    // Set mileage current to current + some distance
+    let suggestedMileage = (selectedCar.current_mileage || 0);
+    document.getElementById('mileage_current').value = suggestedMileage;
+    
+    // Update prices
     document.querySelectorAll('.rental-type-btn').forEach(btn => {
         const type = btn.dataset.type;
         if (type === 'daily') btn.dataset.rate = selectedCar.daily_rate;
@@ -598,9 +846,9 @@ function selectCar(carId) {
         if (type === 'monthly') btn.dataset.rate = selectedCar.monthly_rate;
     });
     
-    // Set initial price
     document.getElementById('customPrice').value = parseFloat(selectedCar.daily_rate).toFixed(2);
     document.getElementById('selectedCarInfo').classList.add('active');
+    document.getElementById('rentalTypeSection').style.display = 'block';
     
     calculateTotal();
 }
@@ -619,7 +867,7 @@ document.querySelectorAll('.rental-type-btn').forEach(btn => {
     });
 });
 
-// Price Change
+// Price Changes
 document.getElementById('customPrice')?.addEventListener('input', calculateTotal);
 
 // Location City Selection
@@ -661,6 +909,75 @@ function calculateTotal() {
     }
 }
 
+// Camera Functions
+async function startCamera() {
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+        });
+        
+        const video = document.getElementById('cameraVideo');
+        video.srcObject = mediaStream;
+        video.style.display = 'block';
+        
+        document.querySelector('.btn-camera-start').style.display = 'none';
+        document.getElementById('captureBtn').style.display = 'inline-block';
+        document.getElementById('stopBtn').style.display = 'inline-block';
+    } catch (error) {
+        alert('خطأ في فتح الكاميرا: ' + error.message);
+    }
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('canvasCapture');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    
+    // Convert to base64
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    capturedPhotos.push({
+        data: imageData,
+        type: 'exterior',
+        description: `صورة #${capturedPhotos.length + 1}`
+    });
+    
+    updatePhotosPreview();
+}
+
+function stopCamera() {
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+    }
+    
+    document.getElementById('cameraVideo').style.display = 'none';
+    document.querySelector('.btn-camera-start').style.display = 'inline-block';
+    document.getElementById('captureBtn').style.display = 'none';
+    document.getElementById('stopBtn').style.display = 'none';
+}
+
+function updatePhotosPreview() {
+    const preview = document.getElementById('photosPreview');
+    preview.innerHTML = capturedPhotos.map((photo, index) => `
+        <div class="photo-item">
+            <img src="${photo.data}" alt="صورة ${index + 1}">
+            <button type="button" class="photo-delete" onclick="deletePhoto(${index})">×</button>
+        </div>
+    `).join('');
+    
+    // Update hidden field
+    document.getElementById('rental_photos_data').value = JSON.stringify(capturedPhotos);
+}
+
+function deletePhoto(index) {
+    capturedPhotos.splice(index, 1);
+    updatePhotosPreview();
+}
+
 // Customer Modal
 function openCustomerModal() {
     document.getElementById('customerModal').classList.add('active');
@@ -686,14 +1003,11 @@ document.getElementById('addCustomerForm').addEventListener('submit', async func
         const result = await response.json();
         
         if (result.success) {
-            // Add to select
             const select = document.getElementById('customer_id');
             const option = new Option(`${formData.get('full_name')} - ${formData.get('phone')}`, result.customer_id, true, true);
             select.add(option);
             
             closeCustomerModal();
-            
-            // Show success message
             alert('تم إضافة العميل بنجاح!');
         } else {
             alert('خطأ: ' + result.message);
@@ -708,6 +1022,18 @@ document.addEventListener('click', function(e) {
     if (!e.target.closest('.car-search-container')) {
         document.getElementById('carResults').classList.remove('active');
     }
+});
+
+// Form Submit
+document.getElementById('rentalForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (capturedPhotos.length === 0) {
+        alert('يرجى التقاط صورة واحدة على الأقل للسيارة!');
+        return;
+    }
+    
+    this.submit();
 });
 </script>
 
