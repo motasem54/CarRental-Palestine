@@ -18,7 +18,7 @@ $cars = $cars_stmt->fetchAll();
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $car_id = (int)$_POST['car_id'];
-    $maintenance_type = $_POST['maintenance_type']; // Changed from 'type'
+    $maintenance_type = $_POST['maintenance_type'];
     $description = $_POST['description'];
     $maintenance_date = $_POST['maintenance_date'];
     $cost = (float)$_POST['cost'];
@@ -98,6 +98,23 @@ include 'includes/sidebar.php';
     background-color: #FF5722 !important;
     color: #ffffff;
 }
+
+/* Last Maintenance Info Box */
+#lastMaintenanceInfo {
+    display: none;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>
 
 <div class="main-content">
@@ -142,18 +159,47 @@ include 'includes/sidebar.php';
                     <small class="text-muted">ابدأ بالكتابة للبحث...</small>
                 </div>
                 
-                <!-- Maintenance Type (ENUM VALUES FROM DB) -->
+                <!-- Maintenance Type - ALL TYPES -->
                 <div class="col-md-6">
                     <label class="form-label"><i class="fas fa-tools me-2"></i>نوع الصيانة <span class="text-danger">*</span></label>
                     <select name="maintenance_type" class="form-select" required>
                         <option value="">اختر النوع</option>
-                        <option value="regular">صيانة دورية</option>
-                        <option value="repair">إصلاح</option>
-                        <option value="inspection">فحص</option>
-                        <option value="other">أخرى</option>
+                        <optgroup label="صيانة دورية">
+                            <option value="oil_change">🛢️ تغيير زيت</option>
+                            <option value="regular_maintenance">⚙️ صيانة دورية</option>
+                            <option value="tire_change">🛞 تغيير إطارات</option>
+                            <option value="inspection">🔍 فحص دوري</option>
+                        </optgroup>
+                        <optgroup label="إصلاحات">
+                            <option value="brake_repair">🛑 إصلاح فرامل</option>
+                            <option value="engine_repair">🔧 إصلاح محرك</option>
+                            <option value="transmission">⚙️ ناقل الحركة</option>
+                            <option value="electrical">⚡ كهرباء</option>
+                            <option value="ac_repair">❄️ إصلاح مكيف</option>
+                            <option value="body_work">🔨 أعمال صفيح</option>
+                        </optgroup>
+                        <optgroup label="أخرى">
+                            <option value="repair">🔧 إصلاح عام</option>
+                            <option value="other">📝 أخرى</option>
+                        </optgroup>
                     </select>
                 </div>
-                
+            </div>
+            
+            <!-- Last Maintenance Info Box -->
+            <div id="lastMaintenanceInfo" class="mt-3">
+                <div class="alert alert-info" style="border-right: 4px solid #2196F3;">
+                    <h6 class="mb-2">
+                        <i class="fas fa-history me-2"></i>📋 آخر صيانة لهذه السيارة
+                    </h6>
+                    <div id="lastMaintenanceContent">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        جاري التحميل...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-3 mt-2">
                 <!-- Maintenance Date -->
                 <div class="col-md-4">
                     <label class="form-label"><i class="fas fa-calendar me-2"></i>تاريخ الصيانة <span class="text-danger">*</span></label>
@@ -175,9 +221,9 @@ include 'includes/sidebar.php';
                 <div class="col-md-4">
                     <label class="form-label"><i class="fas fa-flag me-2"></i>الحالة <span class="text-danger">*</span></label>
                     <select name="status" class="form-select" required>
-                        <option value="pending">معلقة</option>
-                        <option value="in_progress">قيد التنفيذ</option>
-                        <option value="completed">مكتملة</option>
+                        <option value="pending">⏳ معلقة</option>
+                        <option value="in_progress">🔧 قيد التنفيذ</option>
+                        <option value="completed">✅ مكتملة</option>
                     </select>
                 </div>
                 
@@ -212,24 +258,24 @@ include 'includes/sidebar.php';
     <!-- Help Section -->
     <div class="stat-card mt-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
         <h6 style="color: white; margin-bottom: 15px;">
-            <i class="fas fa-info-circle me-2"></i>أنواع الصيانة المتاحة
+            <i class="fas fa-info-circle me-2"></i>دليل أنواع الصيانة
         </h6>
-        <div class="row">
+        <div class="row" style="font-size: 0.9rem;">
             <div class="col-md-3">
-                <strong>⚙️ صيانة دورية (Regular):</strong>
-                <p style="margin: 5px 0; opacity: 0.9;">صيانة روتينية كل 5,000 كم</p>
+                <strong>🛢️ تغيير زيت:</strong>
+                <p style="margin: 5px 0; opacity: 0.9;">كل 5,000 كم</p>
             </div>
             <div class="col-md-3">
-                <strong>🔧 إصلاح (Repair):</strong>
-                <p style="margin: 5px 0; opacity: 0.9;">إصلاح أعطال وقطع</p>
+                <strong>⚙️ صيانة دورية:</strong>
+                <p style="margin: 5px 0; opacity: 0.9;">كل 10,000 كم أو 6 أشهر</p>
             </div>
             <div class="col-md-3">
-                <strong>🔍 فحص (Inspection):</strong>
-                <p style="margin: 5px 0; opacity: 0.9;">فحص دوري أو قبل البيع</p>
+                <strong>🛞 الإطارات:</strong>
+                <p style="margin: 5px 0; opacity: 0.9;">فحص كل 10,000 كم</p>
             </div>
             <div class="col-md-3">
-                <strong>📝 أخرى (Other):</strong>
-                <p style="margin: 5px 0; opacity: 0.9;">أي نوع آخر</p>
+                <strong>🔍 فحص دوري:</strong>
+                <p style="margin: 5px 0; opacity: 0.9;">قبل الرحلات الطويلة</p>
             </div>
         </div>
     </div>
@@ -263,7 +309,6 @@ function autocomplete(inp, arr) {
                 matches++;
                 let b = document.createElement('DIV');
                 
-                // Display format
                 let displayText = `<strong>${car.brand} ${car.model} ${car.year}</strong> - ${car.plate_number}`;
                 if (car.status === 'maintenance') {
                     displayText += ' <span style="color: #ff9800;">(في الصيانة)</span>';
@@ -277,11 +322,14 @@ function autocomplete(inp, arr) {
                     document.getElementById('carSearch').value = input.getAttribute('data-text');
                     document.getElementById('carId').value = input.value;
                     closeAllLists();
+                    
+                    // Load last maintenance info
+                    loadLastMaintenance(input.value);
                 });
                 
                 a.appendChild(b);
                 
-                if (matches >= 10) break; // Limit results
+                if (matches >= 10) break;
             }
         }
         
@@ -335,6 +383,64 @@ function autocomplete(inp, arr) {
     document.addEventListener('click', function (e) {
         closeAllLists(e.target);
     });
+}
+
+// Load last maintenance info
+function loadLastMaintenance(carId) {
+    const infoBox = document.getElementById('lastMaintenanceInfo');
+    const content = document.getElementById('lastMaintenanceContent');
+    
+    infoBox.style.display = 'block';
+    content.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div>جاري التحميل...';
+    
+    fetch(`get_last_maintenance.php?car_id=${carId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.maintenance) {
+                const m = data.maintenance;
+                const typeIcons = {
+                    'oil_change': '🛢️',
+                    'regular_maintenance': '⚙️',
+                    'tire_change': '🛞',
+                    'inspection': '🔍',
+                    'brake_repair': '🛑',
+                    'engine_repair': '🔧',
+                    'transmission': '⚙️',
+                    'electrical': '⚡',
+                    'ac_repair': '❄️',
+                    'body_work': '🔨',
+                    'repair': '🔧',
+                    'other': '📝'
+                };
+                
+                content.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>النوع:</strong><br>
+                            ${typeIcons[m.maintenance_type] || '🔧'} ${m.maintenance_type}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>التاريخ:</strong><br>
+                            📅 ${m.maintenance_date}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>التكلفة:</strong><br>
+                            💰 ${m.cost} ₪
+                        </div>
+                        <div class="col-md-3">
+                            <strong>الحالة:</strong><br>
+                            ${m.status === 'completed' ? '✅ مكتملة' : (m.status === 'in_progress' ? '🔧 قيد التنفيذ' : '⏳ معلقة')}
+                        </div>
+                    </div>
+                    ${m.description ? `<div class="mt-2"><strong>الوصف:</strong> ${m.description}</div>` : ''}
+                `;
+            } else {
+                content.innerHTML = '<p style="margin:0; color:#666;">✨ لا توجد صيانة سابقة لهذه السيارة</p>';
+            }
+        })
+        .catch(error => {
+            content.innerHTML = '<p style="margin:0; color:#f44336;">⚠️ خطأ في تحميل البيانات</p>';
+        });
 }
 
 // Initialize autocomplete
