@@ -37,8 +37,27 @@ if (!$rental) {
     redirect('rentals.php');
 }
 
+// ✅ معالجة القيم المفقودة بقيم افتراضية آمنة
+$rental['base_amount'] = $rental['base_amount'] ?? ($rental['total_amount'] - ($rental['tax_amount'] ?? 0) - ($rental['insurance_amount'] ?? 0));
+$rental['insurance_amount'] = $rental['insurance_amount'] ?? 0;
+$rental['tax_amount'] = $rental['tax_amount'] ?? 0;
+$rental['discount_amount'] = $rental['discount_amount'] ?? 0;
+
+// Get contract type from rental_contracts table
+$stmt = $db->prepare("SELECT contract_type, has_promissory_note FROM rental_contracts WHERE rental_id = ? LIMIT 1");
+$stmt->execute([$rental_id]);
+$contractRecord = $stmt->fetch();
+$contract_type = $contractRecord['contract_type'] ?? 'simple';
+$with_promissory = ($contractRecord['has_promissory_note'] ?? 0) == 1;
+
 // Calculate remaining amount for promissory note
-$remaining_amount = $rental['total_amount'] - $rental['paid_amount'];
+$paid_amount = $rental['paid_amount'] ?? 0;
+$remaining_amount = $rental['total_amount'] - $paid_amount;
+
+// Get inspection record if exists
+$stmt = $db->prepare("SELECT * FROM inspection_forms WHERE rental_id = ? LIMIT 1");
+$stmt->execute([$rental_id]);
+$inspection = $stmt->fetch();
 
 $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
 ?>
@@ -308,6 +327,86 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             color: #FF5722;
         }
         
+        /* Inspection Form - 4 Car Images */
+        .inspection-section {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #2196F3;
+            background: #E3F2FD;
+            border-radius: 10px;
+        }
+        
+        .inspection-section h3 {
+            color: #1565C0;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .car-images-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .car-image-box {
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            text-align: center;
+        }
+        
+        .car-image-box .position-label {
+            font-weight: 700;
+            color: #1565C0;
+            margin-bottom: 10px;
+        }
+        
+        .car-sketch-canvas {
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            cursor: crosshair;
+            background: white;
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+        
+        .canvas-notes {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        
+        /* Inspection Notes */
+        .inspection-notes {
+            margin-top: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 5px;
+            border-right: 4px solid #2196F3;
+        }
+        
+        .inspection-notes label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .inspection-notes textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
         /* Footer */
         .contract-footer {
             text-align: center;
@@ -327,6 +426,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            max-width: 500px;
         }
         
         .btn {
@@ -355,6 +455,10 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             background: linear-gradient(135deg, #4CAF50, #388E3C);
         }
         
+        .btn-info {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .contract-container {
@@ -365,10 +469,15 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 flex-direction: column;
             }
             
+            .car-images-grid {
+                grid-template-columns: 1fr;
+            }
+            
             .action-buttons {
                 position: static;
                 justify-content: center;
                 margin: 20px 0;
+                max-width: 100%;
             }
         }
     </style>
@@ -379,9 +488,10 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
     <!-- Action Buttons -->
     <div class="action-buttons no-print">
         <button class="btn" onclick="window.print()">🖨️ طباعة</button>
-        <button class="btn btn-success" onclick="saveContract()">💾 حفظ PDF</button>
-        <button class="btn btn-secondary" onclick="clearSignatures()">🔄 مسح التوقيع</button>
-        <a href="rentals.php" class="btn btn-secondary" style="text-decoration:none;">← رجوع</a>
+        <button class="btn btn-success" onclick="saveToPDF()">📥 تحميل PDF</button>
+        <button class="btn btn-info" onclick="saveContractDraft()">💾 حفظ مسودة</button>
+        <button class="btn btn-secondary" onclick="clearAllDrawings()">🔄 مسح الرسومات</button>
+        <a href="rental_add.php" class="btn btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;">← العودة</a>
     </div>
     
     <div class="contract-container" id="contract-content">
@@ -401,6 +511,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
         <div class="contract-number">
             <span><strong>رقم العقد:</strong> <?php echo $rental['rental_number']; ?></span>
             <span><strong>التاريخ:</strong> <?php echo formatDate($rental['created_at']); ?></span>
+            <span><strong>النوع:</strong> <?php echo $with_promissory ? '✅ مع كمبيالة' : '📋 بسيط'; ?></span>
         </div>
         
         <!-- Customer Information -->
@@ -514,11 +625,60 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </div>
         </div>
         
-        <?php if ($with_promissory && $remaining_amount > 0): ?>
-        <!-- Page Break for Promissory Note -->
+        <!-- INSPECTION FORM - 4 CAR IMAGES -->
         <div class="page-break"></div>
         
-        <!-- Promissory Note -->
+        <div class="inspection-section">
+            <h3>🔍 نموذج فحص السيارة - اخترق على الأضرار والملاحظات</h3>
+            
+            <div class="car-images-grid">
+                <!-- Front -->
+                <div class="car-image-box">
+                    <div class="position-label">🔴 الأمام (Front)</div>
+                    <canvas id="carFront" class="car-sketch-canvas"></canvas>
+                    <div class="canvas-notes">اخترق على أي خدوش أو تجنيشات في الأمام</div>
+                </div>
+                
+                <!-- Back -->
+                <div class="car-image-box">
+                    <div class="position-label">🟡 الخلف (Back)</div>
+                    <canvas id="carBack" class="car-sketch-canvas"></canvas>
+                    <div class="canvas-notes">اخترق على أي أضرار في الخلف</div>
+                </div>
+                
+                <!-- Left -->
+                <div class="car-image-box">
+                    <div class="position-label">🟢 اليسار (Left Side)</div>
+                    <canvas id="carLeft" class="car-sketch-canvas"></canvas>
+                    <div class="canvas-notes">اخترق على الجنب الأيسر</div>
+                </div>
+                
+                <!-- Right -->
+                <div class="car-image-box">
+                    <div class="position-label">🔵 اليمين (Right Side)</div>
+                    <canvas id="carRight" class="car-sketch-canvas"></canvas>
+                    <div class="canvas-notes">اخترق على الجنب الأيمن</div>
+                </div>
+            </div>
+            
+            <!-- Inspection Notes -->
+            <div class="inspection-notes">
+                <label>📝 ملاحظات الفحص:</label>
+                <textarea id="inspectionNotes" placeholder="اكتب ملاحظاتك حول حالة السيارة (الخدوش، البقع، مستوى الوقود، حالة الإطارات، إلخ)...">اسم المستأجر: <?php echo htmlspecialchars($rental['customer_name']); ?>
+رقم السيارة: <?php echo $rental['plate_number']; ?>
+عداد الكيلومترات: <?php echo $rental['mileage_start']; ?> كم
+الملاحظات:
+- الحالة الخارجية: جيدة
+- الإطارات: سليمة
+- الأضواء: تعمل
+</textarea>
+            </div>
+        </div>
+        
+        <!-- PROMISSORY NOTE -->
+        <?php if ($with_promissory && $remaining_amount > 0): ?>
+        <div class="page-break"></div>
+        
         <div class="promissory-note">
             <h3>🧾 كمبيالة (سند إذني)</h3>
             
@@ -563,20 +723,23 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
-        // Signature functionality
+        // ✅ Signature functionality
         function initSignature(canvasId) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
             
             const ctx = canvas.getContext('2d');
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
             let isDrawing = false;
             let lastX = 0;
             let lastY = 0;
             
             function getCoordinates(e) {
                 const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX || e.touches[0].clientX) - rect.left;
-                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left;
+                const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top;
                 return { x, y };
             }
             
@@ -594,8 +757,6 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 const coords = getCoordinates(e);
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
                 
                 ctx.beginPath();
                 ctx.moveTo(lastX, lastY);
@@ -609,26 +770,29 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 isDrawing = false;
             }
             
-            // Mouse events
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseout', stopDrawing);
             
-            // Touch events
-            canvas.addEventListener('touchstart', startDrawing);
-            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
             canvas.addEventListener('touchend', stopDrawing);
         }
         
-        // Initialize all signature canvases
+        // ✅ Initialize all canvases
         initSignature('customerSignature');
         initSignature('companySignature');
         initSignature('promissorySignature');
+        initSignature('carFront');
+        initSignature('carBack');
+        initSignature('carLeft');
+        initSignature('carRight');
         
-        // Clear signatures
-        function clearSignatures() {
-            ['customerSignature', 'companySignature', 'promissorySignature'].forEach(id => {
+        // ✅ Clear all drawings
+        function clearAllDrawings() {
+            const canvases = ['customerSignature', 'companySignature', 'promissorySignature', 'carFront', 'carBack', 'carLeft', 'carRight'];
+            canvases.forEach(id => {
                 const canvas = document.getElementById(id);
                 if (canvas) {
                     const ctx = canvas.getContext('2d');
@@ -638,18 +802,58 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             });
         }
         
-        // Save as PDF
-        function saveContract() {
+        // ✅ Save to PDF with all content
+        function saveToPDF() {
             const element = document.getElementById('contract-content');
             const opt = {
                 margin: 10,
-                filename: 'contract-<?php echo $rental['rental_number']; ?>.pdf',
+                filename: 'contract-<?php echo $rental['rental_number']; ?>-' + new Date().toISOString().slice(0,10) + '.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             
             html2pdf().set(opt).from(element).save();
+        }
+        
+        // ✅ Save contract draft (AJAX)
+        function saveContractDraft() {
+            const notes = document.getElementById('inspectionNotes').value;
+            
+            // Get signature data as base64
+            const signatures = {};
+            ['customerSignature', 'companySignature', 'promissorySignature', 'carFront', 'carBack', 'carLeft', 'carRight'].forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    signatures[id] = canvas.toDataURL('image/png');
+                }
+            });
+            
+            fetch('save_contract_draft.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    rental_id: <?php echo $rental_id; ?>,
+                    inspection_notes: notes,
+                    signatures: signatures,
+                    has_promissory: <?php echo $with_promissory ? 'true' : 'false'; ?>
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ تم حفظ مسودة العقد بنجاح!');
+                } else {
+                    alert('❌ خطأ: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('❌ حدث خطأ في الحفظ');
+            });
         }
     </script>
 </body>
