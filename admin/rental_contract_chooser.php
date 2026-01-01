@@ -40,10 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $contractType = 'simple';
     }
     
-    // Create contract record
+    // Create contract record - ✅ بدون حقل status
     $stmt = $db->prepare("
-        INSERT INTO rental_contracts (rental_id, contract_type, status, created_by, created_at)
-        VALUES (?, ?, 'draft', ?, NOW())
+        INSERT INTO rental_contracts (rental_id, contract_type, created_by, created_at)
+        VALUES (?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE contract_type = VALUES(contract_type)
     ");
     
