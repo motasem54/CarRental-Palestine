@@ -45,15 +45,18 @@ try {
             'maintenance' => $maintenance
         ]);
     } else {
+        // لا توجد صيانة سابقة
         echo json_encode([
-            'success' => false,
-            'message' => 'No maintenance found'
+            'success' => true,
+            'maintenance' => null,
+            'message' => 'لا توجد صيانة سابقة لهذه السيارة'
         ]);
     }
     
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
+        'error' => true,
         'message' => $e->getMessage()
     ]);
 }
