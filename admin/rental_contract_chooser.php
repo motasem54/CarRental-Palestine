@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hasPromissory
     ]);
     
-    // Update rental contract_signed field
+    // Update rental contract_signed field - ✅ قيمة رقمية فقط (1)
     $stmt = $db->prepare("UPDATE rentals SET contract_signed = 1 WHERE id = ?");
     $stmt->execute([$rentalId]);
     
