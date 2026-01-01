@@ -1,0 +1,45 @@
+🚨 FIX INSTRUCTIONS - تعليمات الإصلاح العاجل
+
+المشكلة: Server (الموقع) لم يطبق التحديثات من GitHub
+
+✅ الحل السريع:
+
+1. من cPanel:
+   - الروابط المالية / File Manager
+   - اذهب للمسار: public_html/RentDemoP/admin/
+   - الكليك يمين على رواية rental_contract_chooser.php → Delete
+
+2. الرفع الملف الجديد:
+   من GitHub: https://raw.githubusercontent.com/motasem54/CarRental-Palestine/main/admin/rental_contract_chooser.php
+   - Right Click → Save As → احفظ على desktop
+   - Upload إلى public_html/RentDemoP/admin/
+
+3. اللازم موجود مبدئياً:
+   ✏️ السلاٌ سالم: Line 56-58 (الكود الحالي):
+   
+   // Create contract record
+   $stmt = $db->prepare("
+       INSERT INTO rental_contracts (rental_id, contract_type, has_promissory_note, created_at)
+       VALUES (?, ?, ?, NOW())
+   ");
+   $stmt->execute([
+       $rentalId,
+       $contractType,  ✅ القيمة الصحيحة: 'simple' أو 'with_promissory'
+       $hasPromissory  ✅ القيمة الصحيحة: 0 أو 1
+   ]);
+   
+   // Update rental contract_signed field
+   $stmt = $db->prepare("UPDATE rentals SET contract_signed = 1 WHERE id = ?");
+   $stmt->execute([$rentalId]);
+   
+4. بعد وقاف رفع: Refresh cache
+   - cPanel → Memcached → Flush
+   أو بروازر: Ctrl+Shift+Delete (حذف cache)
+
+5. الحالة القديمة:
+   اذهب للمسار: public_html/RentDemoP/
+   ابحث عن ملف باسم .htaccess
+   وإذا وجدبه الطريقة المرببوه: ابحث عن سطر cache
+   واحذفه أو علقه
+
+✅ بعد كل هادي: المشكلة راح تختفي!
