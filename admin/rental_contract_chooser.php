@@ -40,22 +40,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $contractType = 'simple';
     }
     
-    // Create contract record - ✅ بدون حقل status
+    $hasPromissory = $contractType === 'with_promissory' ? 1 : 0;
+    
+    // Create contract record - ✅ بالحقول الصحيحة فقط
     $stmt = $db->prepare("
-        INSERT INTO rental_contracts (rental_id, contract_type, created_by, created_at)
+        INSERT INTO rental_contracts (rental_id, contract_type, has_promissory_note, created_at)
         VALUES (?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE contract_type = VALUES(contract_type)
+        ON DUPLICATE KEY UPDATE contract_type = VALUES(contract_type), has_promissory_note = VALUES(has_promissory_note)
     ");
     
     $stmt->execute([
         $rentalId,
         $contractType,
-        $_SESSION['user_id']
+        $hasPromissory
     ]);
     
     // Update rental contract_signed field
-    $stmt = $db->prepare("UPDATE rentals SET contract_signed = ? WHERE id = ?");
-    $stmt->execute([$contractType, $rentalId]);
+    $stmt = $db->prepare("UPDATE rentals SET contract_signed = 1 WHERE id = ?");
+    $stmt->execute([$rentalId]);
     
     $_SESSION['success'] = 'تم اختيار نوع العقد بنجاح';
     redirect('contract_print.php?id=' . $rentalId);
@@ -401,7 +403,7 @@ include 'includes/sidebar.php';
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">عداد الاستلام</span>
-                    <span class="summary-value"><?php echo $rental['mileage_current'] ?? 0; ?> كم</span>
+                    <span class="summary-value"><?php echo $rental['mileage_start'] ?? 0; ?> كم</span>
                 </div>
             </div>
             
