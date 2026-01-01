@@ -105,7 +105,7 @@ include 'includes/sidebar.php';
     </div>
 
     <!-- Cars Table -->
-    <div class="table-container">
+    <div class="stat-card">
         <h5 class="mb-3">
             <i class="fas fa-list text-primary"></i>
             قائمة السيارات
@@ -146,7 +146,7 @@ include 'includes/sidebar.php';
                         <td><?php echo $car['model']; ?></td>
                         <td><?php echo $car['year']; ?></td>
                         <td><span class="badge bg-secondary"><?php echo CAR_TYPES[$car['type']]; ?></span></td>
-                        <td><strong><?php echo formatCurrency($car['daily_rate']); ?></strong></td>
+                        <td><strong><?php echo number_format($car['daily_rate'], 2); ?> ₪</strong></td>
                         <td>
                             <?php
                             $statusColors = [
@@ -169,12 +169,31 @@ include 'includes/sidebar.php';
                                 <a href="car_edit.php?id=<?php echo $car['id']; ?>" class="btn btn-sm btn-primary" title="تعديل">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="cars.php?delete=<?php echo $car['id']; ?>" 
-                                   class="btn btn-sm btn-danger" 
-                                   title="حذف"
-                                   onclick="return confirm('هل أنت متأكد من حذف هذه السيارة؟')">
-                                    <i class="fas fa-trash"></i>
-                                </a>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown" title="أخرى">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="car_maintenance_history.php?car_id=<?php echo $car['id']; ?>">
+                                                <i class="fas fa-tools me-2"></i>سجل الصيانة
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="car_rental_history.php?car_id=<?php echo $car['id']; ?>">
+                                                <i class="fas fa-history me-2"></i>سجل التأجير
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" 
+                                               href="cars.php?delete=<?php echo $car['id']; ?>" 
+                                               onclick="return confirm('هل أنت متأكد من حذف هذه السيارة؟')">
+                                                <i class="fas fa-trash me-2"></i>حذف
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </td>
                     </tr>
