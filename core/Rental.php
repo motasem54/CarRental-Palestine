@@ -40,33 +40,36 @@ class Rental {
             $interval = $startDate->diff($endDate);
             $totalDays = $interval->days + 1;
 
-            // Calculate amounts
+            // Calculate amounts based on database schema
             $dailyRate = $data['custom_rate'] ?? $car['daily_rate'];
-            $baseAmount = $totalDays * $dailyRate;
+            $subtotal = $totalDays * $dailyRate;
             
             // Apply discount if code provided
             $discountAmount = 0;
-            $discountCode = '';
+            $discountReason = '';
             if (!empty($data['discount_code'])) {
-                $discount = $this->applyDiscountCode($data['discount_code'], $baseAmount);
+                $discount = $this->applyDiscountCode($data['discount_code'], $subtotal);
                 $discountAmount = $discount['amount'];
-                $discountCode = $data['discount_code'];
+                $discountReason = 'كود خصم: ' . $data['discount_code'];
             }
 
-            $subtotal = $baseAmount - $discountAmount;
-            $taxAmount = $subtotal * (TAX_RATE / 100);
-            $insuranceAmount = $car['insurance_amount'] ?? 0;
-            $totalAmount = $subtotal + $taxAmount + $insuranceAmount;
+            // Tax calculation
+            $taxAmount = ($subtotal - $discountAmount) * (TAX_RATE / 100);
+            
+            // Total amount
+            $totalAmount = $subtotal - $discountAmount + $taxAmount;
+            $remainingAmount = $totalAmount; // Initially all remaining
+            $paidAmount = 0;
 
-            // Insert rental
+            // Insert rental - matching EXACT database columns
             $sql = "INSERT INTO rentals (
                 rental_number, car_id, customer_id, start_date, end_date,
                 pickup_location, return_location, total_days, daily_rate,
-                base_amount, discount_amount, discount_code, tax_amount,
-                insurance_amount, total_amount, paid_amount, remaining_amount,
+                subtotal, discount_amount, discount_reason, tax_amount,
+                total_amount, paid_amount, remaining_amount,
                 payment_status, status, notes, created_by, created_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'pending', 'pending',
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending',
                 ?, ?, NOW()
             )";
 
@@ -81,13 +84,13 @@ class Rental {
                 $data['return_location'] ?? DEFAULT_CITY,
                 $totalDays,
                 $dailyRate,
-                $baseAmount,
+                $subtotal,
                 $discountAmount,
-                $discountCode,
+                $discountReason,
                 $taxAmount,
-                $insuranceAmount,
                 $totalAmount,
-                $totalAmount, // Initially all remaining
+                $paidAmount,
+                $remainingAmount,
                 $data['notes'] ?? null,
                 $data['user_id'] ?? $_SESSION['user_id'] ?? null
             ]);
@@ -134,13 +137,13 @@ class Rental {
                 $interval = $startDate->diff($endDate);
                 $totalDays = $interval->days + 1;
                 
-                $baseAmount = $totalDays * $data['daily_rate'];
+                $subtotal = $totalDays * $data['daily_rate'];
                 $discountAmount = $data['discount_amount'] ?? 0;
-                $taxAmount = ($baseAmount - $discountAmount) * (TAX_RATE / 100);
-                $totalAmount = $baseAmount - $discountAmount + $taxAmount;
+                $taxAmount = ($subtotal - $discountAmount) * (TAX_RATE / 100);
+                $totalAmount = $subtotal - $discountAmount + $taxAmount;
 
                 $data['total_days'] = $totalDays;
-                $data['base_amount'] = $baseAmount;
+                $data['subtotal'] = $subtotal;
                 $data['tax_amount'] = $taxAmount;
                 $data['total_amount'] = $totalAmount;
             }
@@ -191,9 +194,6 @@ class Rental {
                 if ($actualReturn > $endDate) {
                     $lateDays = $actualReturn->diff($endDate)->days;
                     $penaltyAmount = $lateDays * (LATE_FEE_PER_DAY ?? 50);
-                    
-                    // Add penalty record
-                    $this->addPenalty($id, 'late_return', $penaltyAmount, "تأخير في التسليم: $lateDays يوم");
                 }
             }
 
@@ -205,6 +205,7 @@ class Rental {
                     fuel_level_end = ?,
                     penalty_amount = penalty_amount + ?,
                     total_amount = total_amount + ?,
+                    remaining_amount = remaining_amount + ?,
                     status = 'completed',
                     updated_at = NOW()
                 WHERE id = ?
@@ -214,6 +215,7 @@ class Rental {
                 $returnData['actual_return_date'],
                 $returnData['mileage_end'] ?? null,
                 $returnData['fuel_level_end'] ?? 'full',
+                $penaltyAmount,
                 $penaltyAmount,
                 $penaltyAmount,
                 $id
@@ -388,8 +390,8 @@ class Rental {
         // Update customer total points
         $updateStmt = $this->db->prepare("
             UPDATE customers SET 
-                loyalty_points = loyalty_points + ?,
-                total_bookings = total_bookings + 1
+                loyalty_points = COALESCE(loyalty_points, 0) + ?,
+                total_bookings = COALESCE(total_bookings, 0) + 1
             WHERE id = ?
         ");
         
@@ -397,23 +399,6 @@ class Rental {
             return $updateStmt->execute([$points, $customerId]);
         } catch (Exception $e) {
             // Columns might not exist, ignore
-            return true;
-        }
-    }
-
-    /**
-     * Helper: Add penalty
-     */
-    private function addPenalty($rentalId, $type, $amount, $description) {
-        $stmt = $this->db->prepare("
-            INSERT INTO penalties (rental_id, penalty_type, amount, description, status, created_at)
-            VALUES (?, ?, ?, ?, 'pending', NOW())
-        ");
-        
-        try {
-            return $stmt->execute([$rentalId, $type, $amount, $description]);
-        } catch (Exception $e) {
-            // Table might not exist, ignore
             return true;
         }
     }
