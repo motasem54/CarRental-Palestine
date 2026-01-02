@@ -15,7 +15,7 @@ if (!isset($_GET['id'])) {
 
 $rental_id = (int)$_GET['id'];
 
-// Get rental details - بدون image_url
+// Get rental details
 $stmt = $db->prepare("
     SELECT r.*, 
            c.full_name as customer_name, c.phone as customer_phone, 
@@ -47,7 +47,7 @@ $rental['base_amount'] = $rental['base_amount'] ?? ($rental['total_amount'] - ($
 $rental['insurance_amount'] = $rental['insurance_amount'] ?? 0;
 $rental['discount_amount'] = $rental['discount_amount'] ?? 0;
 $rental['paid_amount'] = $rental['paid_amount'] ?? 0;
-$rental['tax_amount'] = 0; // No Tax
+$rental['mileage_start'] = $rental['mileage_start'] ?? 0;
 
 $remaining_amount = $rental['total_amount'] - $rental['paid_amount'];
 $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
@@ -62,7 +62,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
     <style>
         @page {
             size: A4;
-            margin: 10mm;
+            margin: 8mm;
         }
         
         * {
@@ -74,13 +74,14 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
         
         body {
             background: #f0f2f5;
-            padding: 15px;
+            padding: 10px;
         }
         
         @media print {
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
-            .page-break { page-break-after: always; }
+            .page-break { page-break-before: always; }
+            .avoid-break { page-break-inside: avoid; }
         }
         
         .contract {
@@ -88,118 +89,102 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             width: 210mm;
             margin: 0 auto;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            position: relative;
         }
         
-        /* ===== HEADER / TROUHEHA ===== */
+        /* ===== HEADER ===== */
         .header {
             background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
             color: white;
-            padding: 20px;
+            padding: 15px 20px;
             display: grid;
             grid-template-columns: auto 1fr auto;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
-            border-bottom: 5px solid #ff6f00;
-        }
-        
-        .logo-box {
-            text-align: center;
+            border-bottom: 4px solid #ff6f00;
         }
         
         .logo-circle {
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             background: linear-gradient(135deg, #ff6f00, #ff9100);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 900;
-            box-shadow: 0 4px 15px rgba(255, 111, 0, 0.4);
-        }
-        
-        .header-info {
-            text-align: center;
+            box-shadow: 0 4px 12px rgba(255, 111, 0, 0.4);
         }
         
         .header-info h1 {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
-            margin-bottom: 5px;
-            letter-spacing: 1px;
+            margin-bottom: 3px;
         }
         
         .header-info .company {
-            font-size: 14px;
+            font-size: 13px;
             color: #ffeb3b;
             font-weight: 700;
         }
         
         .header-info .details {
-            font-size: 11px;
-            margin-top: 8px;
-            line-height: 1.6;
+            font-size: 10px;
+            margin-top: 5px;
+            line-height: 1.5;
             color: #eceff1;
-        }
-        
-        .header-stamp {
-            text-align: center;
         }
         
         .stamp {
             border: 3px solid #ff6f00;
             border-radius: 50%;
-            width: 70px;
-            height: 70px;
+            width: 65px;
+            height: 65px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 900;
             color: #ff6f00;
             transform: rotate(-15deg);
             background: rgba(255, 255, 255, 0.1);
+            text-align: center;
+            line-height: 1.2;
         }
         
-        /* ===== CONTRACT NUMBER BAR ===== */
+        /* ===== CONTRACT BAR ===== */
         .contract-bar {
             background: linear-gradient(90deg, #ff6f00, #ffb74d);
             color: white;
-            padding: 12px 20px;
+            padding: 10px 15px;
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 30px;
+            gap: 20px;
             font-weight: 700;
-            font-size: 13px;
-        }
-        
-        .contract-bar strong {
-            color: #fff;
+            font-size: 12px;
         }
         
         /* ===== SECTION HEADER ===== */
         .section-header {
             background: linear-gradient(90deg, #1a237e, #283593);
             color: white;
-            padding: 10px 15px;
+            padding: 8px 12px;
             font-weight: 900;
-            font-size: 13px;
+            font-size: 12px;
             border-right: 4px solid #ff6f00;
-            margin: 15px 0 10px 0;
+            margin: 12px 0 8px 0;
         }
         
-        /* ===== MAIN TABLE ===== */
+        /* ===== TABLES ===== */
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
-            font-size: 12px;
+            margin-bottom: 10px;
+            font-size: 11px;
         }
         
         .info-table td {
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #ddd;
         }
         
@@ -218,12 +203,12 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
         .financial-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 12px;
+            margin: 12px 0;
+            font-size: 11px;
         }
         
         .financial-table td {
-            padding: 12px;
+            padding: 10px;
             border: 2px solid #1a237e;
         }
         
@@ -238,93 +223,105 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             background: #f5f5f5;
             text-align: center;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 12px;
         }
         
         .financial-table tr:last-child td {
             background: linear-gradient(90deg, #1a237e, #283593);
             color: white;
-            font-size: 14px;
-            font-weight: 900;
-        }
-        
-        /* ===== CAR IMAGES INSPECTION ===== */
-        .inspection-header {
-            background: #1a237e;
-            color: white;
-            padding: 12px 15px;
-            font-weight: 900;
             font-size: 13px;
-            margin-top: 20px;
-            border-right: 4px solid #ff6f00;
-            text-align: center;
+            font-weight: 900;
         }
         
-        .car-images {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            padding: 15px;
-            background: #f9f9f9;
-            margin-top: 10px;
-        }
-        
-        .car-image-item {
-            background: white;
-            border: 3px solid #1a237e;
-            border-radius: 8px;
+        /* ===== CAR INSPECTION ===== */
+        .inspection-section {
+            margin-top: 15px;
             padding: 12px;
-            text-align: center;
+            background: #f9f9f9;
+            border: 2px solid #1a237e;
+            border-radius: 6px;
         }
         
-        .car-position {
+        .inspection-header {
             background: linear-gradient(90deg, #1a237e, #283593);
             color: white;
-            padding: 8px;
-            font-weight: 700;
+            padding: 10px;
+            font-weight: 900;
             font-size: 12px;
-            margin-bottom: 10px;
+            text-align: center;
             border-radius: 4px;
+            margin-bottom: 12px;
         }
         
-        .car-image {
+        .car-views {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .car-view {
+            background: white;
+            border: 2px solid #1a237e;
+            border-radius: 6px;
+            padding: 10px;
+            page-break-inside: avoid;
+        }
+        
+        .view-title {
+            background: linear-gradient(90deg, #1a237e, #283593);
+            color: white;
+            padding: 6px;
+            font-weight: 700;
+            font-size: 11px;
+            text-align: center;
+            border-radius: 3px;
+            margin-bottom: 8px;
+        }
+        
+        .car-diagram {
+            position: relative;
             width: 100%;
-            height: 140px;
+            height: 160px;
             background: white;
             border: 2px solid #1a237e;
             border-radius: 4px;
-            margin-bottom: 10px;
-            object-fit: contain;
-            padding: 5px;
+            margin-bottom: 8px;
         }
         
         .drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 140px;
-            border: 2px dashed #1a237e;
-            background: white;
-            border-radius: 4px;
-            margin-top: 10px;
+            height: 100%;
             cursor: crosshair;
+            z-index: 10;
         }
         
-        .drawing-notes {
-            font-size: 11px;
+        .view-notes {
+            font-size: 9px;
             color: #666;
-            font-style: italic;
             background: #fff3e0;
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 8px;
+            padding: 6px;
+            border-radius: 3px;
+            text-align: center;
         }
         
-        /* ===== SIGNATURE SECTION ===== */
+        /* ===== SEDAN CAR SVG ===== */
+        .sedan-front {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* ===== SIGNATURES ===== */
         .signature-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 30px;
-            padding: 0 15px;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 0 12px;
+            page-break-inside: avoid;
         }
         
         .signature-box {
@@ -337,14 +334,14 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             border-radius: 4px;
             cursor: crosshair;
             width: 100%;
-            height: 120px;
-            margin-bottom: 15px;
+            height: 100px;
+            margin-bottom: 10px;
         }
         
         .signature-line {
             border-top: 2px solid #1a237e;
-            padding-top: 10px;
-            font-size: 12px;
+            padding-top: 8px;
+            font-size: 11px;
         }
         
         .signature-line strong {
@@ -355,28 +352,120 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
         
         /* ===== TERMS ===== */
         .terms-section {
-            padding: 15px;
+            padding: 12px;
             background: #ede7f6;
-            margin: 15px 0;
+            margin: 12px 0;
             border-right: 4px solid #ff6f00;
-            font-size: 11px;
-            line-height: 1.8;
+            font-size: 10px;
+            line-height: 1.7;
+            page-break-inside: avoid;
         }
         
         .terms-section h4 {
             color: #1a237e;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+        
+        /* ===== PROMISSORY NOTE ===== */
+        .promissory-note {
+            border: 4px double #1a237e;
+            margin: 20px;
+            padding: 25px;
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-radius: 8px;
+            position: relative;
+            page-break-inside: avoid;
+        }
+        
+        .promissory-header {
+            text-align: center;
+            border-bottom: 3px solid #ff6f00;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .promissory-header h2 {
+            font-size: 24px;
+            color: #1a237e;
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+        
+        .promissory-header .subtitle {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .promissory-body {
+            line-height: 2.2;
             font-size: 12px;
+            text-align: center;
+        }
+        
+        .promissory-body .debtor-name {
+            font-size: 16px;
+            font-weight: 900;
+            color: #1a237e;
+            display: block;
+            margin: 10px 0;
+        }
+        
+        .amount-box {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            border: 3px solid #ff6f00;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .amount-box .label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .amount-box .amount {
+            font-size: 28px;
+            font-weight: 900;
+            color: #ff6f00;
+            margin: 8px 0;
+        }
+        
+        .amount-box .words {
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .promissory-details {
+            margin: 15px 0;
+            font-size: 12px;
+        }
+        
+        .promissory-details strong {
+            color: #1a237e;
+            font-weight: 900;
+        }
+        
+        .promissory-signature {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
         }
         
         /* ===== FOOTER ===== */
         .footer {
             text-align: center;
-            padding: 15px;
+            padding: 12px;
             border-top: 3px solid #1a237e;
-            font-size: 11px;
+            font-size: 9px;
             color: #666;
             background: #f5f5f5;
+            margin-top: 15px;
         }
         
         /* ===== BUTTONS ===== */
@@ -399,7 +488,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             font-weight: 700;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(26, 35, 126, 0.3);
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.3s;
         }
         
@@ -408,14 +497,8 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             box-shadow: 0 6px 20px rgba(26, 35, 126, 0.4);
         }
         
-        .btn-orange {
-            background: linear-gradient(135deg, #ff6f00, #ff9100);
-        }
-        
-        .btn-green {
-            background: linear-gradient(135deg, #00695c, #004d40);
-        }
-        
+        .btn-orange { background: linear-gradient(135deg, #ff6f00, #ff9100); }
+        .btn-green { background: linear-gradient(135deg, #00695c, #004d40); }
         .btn-back {
             background: linear-gradient(135deg, #455a64, #37474f);
             text-decoration: none;
@@ -424,23 +507,10 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
         }
         
         @media (max-width: 768px) {
-            .contract {
-                width: 100%;
-            }
-            
-            .car-images {
-                grid-template-columns: 1fr;
-            }
-            
-            .signature-section {
-                grid-template-columns: 1fr;
-            }
-            
-            .actions {
-                position: static;
-                justify-content: center;
-                margin: 20px 0;
-            }
+            .contract { width: 100%; }
+            .car-views { grid-template-columns: 1fr; }
+            .signature-section { grid-template-columns: 1fr; }
+            .actions { position: static; justify-content: center; margin: 20px 0; }
         }
     </style>
 </head>
@@ -449,12 +519,12 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
     <div class="actions no-print">
         <button class="btn btn-orange" onclick="window.print()">🖨️ طباعة</button>
         <button class="btn btn-green" onclick="exportPDF()">📥 تحميل PDF</button>
-        <button class="btn" onclick="clearDrawings()">🔄 مسح</button>
+        <button class="btn" onclick="clearDrawings()">🔄 مسح الرسم</button>
         <a href="rentals.php" class="btn btn-back">← عودة</a>
     </div>
     
     <div class="contract" id="contract">
-        <!-- ===== HEADER ===== -->
+        <!-- HEADER -->
         <div class="header">
             <div class="logo-box">
                 <div class="logo-circle">🚗</div>
@@ -463,7 +533,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 <h1>عقد إيجار سيارة</h1>
                 <div class="company"><?php echo COMPANY_NAME; ?></div>
                 <div class="details">
-                    📞 <?php echo COMPANY_PHONE; ?><br>
+                    📞 <?php echo COMPANY_PHONE; ?> | 
                     📧 <?php echo COMPANY_EMAIL; ?><br>
                     📍 <?php echo COMPANY_ADDRESS; ?> | 🇵🇸
                 </div>
@@ -473,14 +543,14 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </div>
         </div>
         
-        <!-- CONTRACT NUMBER BAR -->
+        <!-- CONTRACT BAR -->
         <div class="contract-bar">
             <div>رقم العقد: <strong><?php echo $rental['rental_number']; ?></strong></div>
             <div>التاريخ: <strong><?php echo formatDate($rental['created_at']); ?></strong></div>
             <div>النوع: <strong><?php echo $with_promissory ? '✅ مع كمبيالة' : '📋 بسيط'; ?></strong></div>
         </div>
         
-        <!-- ===== CUSTOMER DATA ===== -->
+        <!-- CUSTOMER DATA -->
         <div class="section-header">👤 بيانات المستأجر</div>
         <table class="info-table">
             <tr>
@@ -501,7 +571,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
         </table>
         
-        <!-- ===== CAR DATA ===== -->
+        <!-- CAR DATA -->
         <div class="section-header">🚙 بيانات السيارة</div>
         <table class="info-table">
             <tr>
@@ -523,25 +593,25 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 <td><?php echo $rental['transmission'] ?? 'أوتوماتيك'; ?></td>
             </tr>
             <tr>
-                <td>عداد الكيلومتر عند الاستلام</td>
-                <td colspan="3"><strong><?php echo $rental['mileage_start'] ?? 0; ?> كم</strong></td>
+                <td>⚙️ عداد الكيلومتر عند الاستلام</td>
+                <td colspan="3"><strong style="color:#ff6f00; font-size:14px;"><?php echo number_format($rental['mileage_start']); ?> كم</strong></td>
             </tr>
         </table>
         
-        <!-- ===== RENTAL PERIOD ===== -->
+        <!-- RENTAL PERIOD -->
         <div class="section-header">📅 فترة الإيجار</div>
         <table class="info-table">
             <tr>
                 <td>تاريخ الاستلام</td>
                 <td><?php echo formatDate($rental['start_date']); ?></td>
-                <td>الوقت</td>
-                <td><?php echo date('H:i', strtotime($rental['start_date'])); ?></td>
+                <td>⏰ الوقت</td>
+                <td><strong style="color:#ff6f00;"><?php echo date('h:i A', strtotime($rental['start_date'])); ?></strong></td>
             </tr>
             <tr>
                 <td>تاريخ التسليم</td>
                 <td><?php echo formatDate($rental['end_date']); ?></td>
-                <td>الوقت</td>
-                <td><?php echo date('H:i', strtotime($rental['end_date'])); ?></td>
+                <td>⏰ الوقت</td>
+                <td><strong style="color:#ff6f00;"><?php echo date('h:i A', strtotime($rental['end_date'])); ?></strong></td>
             </tr>
             <tr>
                 <td>عدد الأيام</td>
@@ -549,7 +619,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
         </table>
         
-        <!-- ===== FINANCIAL - NO TAX ===== -->
+        <!-- FINANCIAL -->
         <div class="section-header">💰 التفاصيل المالية</div>
         <table class="financial-table">
             <tr>
@@ -576,91 +646,161 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
         </table>
         
-        <!-- ===== INSPECTION FORM WITH CAR IMAGES ===== -->
+        <!-- CAR INSPECTION -->
         <div class="page-break"></div>
         
-        <div class="inspection-header">🔍 نموذج فحص حالة السيارة - اخترق على الرسومات التالية</div>
-        
-        <div class="car-images">
-            <!-- FRONT -->
-            <div class="car-image-item">
-                <div class="car-position">🔴 الجهة الأمامية</div>
-                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="30" y="40" width="140" height="80" fill="#ddd" stroke="#333" stroke-width="2"/>
-                    <circle cx="60" cy="110" r="15" fill="#333"/>
-                    <circle cx="140" cy="110" r="15" fill="#333"/>
-                    <rect x="50" y="50" width="30" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
-                    <rect x="120" y="50" width="30" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
-                    <polygon points="100,40 130,40 100,20" fill="#666"/>
-                    <rect x="70" y="25" width="60" height="12" fill="#f4f4f4" stroke="#333" stroke-width="1"/>
-                </svg>
-                <canvas id="carFront" class="drawing-canvas"></canvas>
-                <div class="drawing-notes">📋 اخترق على أي خدوش أو تجنيشات في الأمام</div>
-            </div>
+        <div class="inspection-section avoid-break">
+            <div class="inspection-header">🔍 نموذج فحص حالة السيارة - قم بالتعليم على الرسومات</div>
             
-            <!-- BACK -->
-            <div class="car-image-item">
-                <div class="car-position">🟡 الجهة الخلفية</div>
-                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="30" y="40" width="140" height="80" fill="#ddd" stroke="#333" stroke-width="2"/>
-                    <circle cx="60" cy="110" r="15" fill="#333"/>
-                    <circle cx="140" cy="110" r="15" fill="#333"/>
-                    <rect x="50" y="50" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="1"/>
-                    <rect x="120" y="50" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="1"/>
-                    <rect x="70" y="115" width="60" height="8" fill="#555" stroke="#333" stroke-width="1"/>
-                </svg>
-                <canvas id="carBack" class="drawing-canvas"></canvas>
-                <div class="drawing-notes">📋 اخترق على أي أضرار في الخلف</div>
-            </div>
-            
-            <!-- LEFT -->
-            <div class="car-image-item">
-                <div class="car-position">🟢 الجانب الأيسر</div>
-                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="100" cy="100" rx="70" ry="50" fill="#ddd" stroke="#333" stroke-width="2"/>
-                    <circle cx="50" cy="105" r="15" fill="#333"/>
-                    <circle cx="150" cy="105" r="15" fill="#333"/>
-                    <rect x="70" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
-                    <rect x="95" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
-                    <line x1="20" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2"/>
-                    <polygon points="160,85 175,95 160,105" fill="#ff9800"/>
-                </svg>
-                <canvas id="carLeft" class="drawing-canvas"></canvas>
-                <div class="drawing-notes">📋 اخترق على الجنب الأيسر</div>
-            </div>
-            
-            <!-- RIGHT -->
-            <div class="car-image-item">
-                <div class="car-position">🔵 الجانب الأيمن</div>
-                <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="100" cy="100" rx="70" ry="50" fill="#ddd" stroke="#333" stroke-width="2"/>
-                    <circle cx="50" cy="105" r="15" fill="#333"/>
-                    <circle cx="150" cy="105" r="15" fill="#333"/>
-                    <rect x="70" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
-                    <rect x="95" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
-                    <line x1="20" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2"/>
-                    <polygon points="25,85 40,95 25,105" fill="#ff9800"/>
-                </svg>
-                <canvas id="carRight" class="drawing-canvas"></canvas>
-                <div class="drawing-notes">📋 اخترق على الجانب الأيمن</div>
+            <div class="car-views">
+                <!-- FRONT VIEW -->
+                <div class="car-view">
+                    <div class="view-title">🔴 الجهة الأمامية</div>
+                    <div class="car-diagram">
+                        <svg class="sedan-front" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Body -->
+                            <rect x="50" y="70" width="200" height="80" fill="#ddd" stroke="#333" stroke-width="3" rx="8"/>
+                            <!-- Windshield -->
+                            <polygon points="100,70 200,70 180,50 120,50" fill="#87ceeb" stroke="#333" stroke-width="2"/>
+                            <!-- Hood ornament -->
+                            <rect x="140" y="35" width="20" height="15" fill="#555" stroke="#333" stroke-width="2" rx="2"/>
+                            <!-- Headlights -->
+                            <ellipse cx="80" cy="85" rx="18" ry="12" fill="#ffffcc" stroke="#333" stroke-width="2"/>
+                            <ellipse cx="220" cy="85" rx="18" ry="12" fill="#ffffcc" stroke="#333" stroke-width="2"/>
+                            <!-- Grille -->
+                            <rect x="120" y="80" width="60" height="25" fill="#333" stroke="#333" stroke-width="2" rx="3"/>
+                            <line x1="125" y1="85" x2="175" y2="85" stroke="#666" stroke-width="1"/>
+                            <line x1="125" y1="92" x2="175" y2="92" stroke="#666" stroke-width="1"/>
+                            <line x1="125" y1="99" x2="175" y2="99" stroke="#666" stroke-width="1"/>
+                            <!-- Bumper -->
+                            <rect x="60" y="110" width="180" height="15" fill="#888" stroke="#333" stroke-width="2" rx="4"/>
+                            <!-- License Plate -->
+                            <rect x="130" y="112" width="40" height="10" fill="#fff" stroke="#333" stroke-width="1"/>
+                            <!-- Wheels -->
+                            <circle cx="90" cy="145" r="25" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="90" cy="145" r="15" fill="#444" stroke="#555" stroke-width="2"/>
+                            <circle cx="210" cy="145" r="25" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="210" cy="145" r="15" fill="#444" stroke="#555" stroke-width="2"/>
+                        </svg>
+                        <canvas id="carFront" class="drawing-canvas"></canvas>
+                    </div>
+                    <div class="view-notes">📝 اخترق على أي خدوش أو تجنيشات في الأمام</div>
+                </div>
+                
+                <!-- BACK VIEW -->
+                <div class="car-view">
+                    <div class="view-title">🟡 الجهة الخلفية</div>
+                    <div class="car-diagram">
+                        <svg class="sedan-front" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Body -->
+                            <rect x="50" y="70" width="200" height="80" fill="#ddd" stroke="#333" stroke-width="3" rx="8"/>
+                            <!-- Rear Window -->
+                            <polygon points="100,70 200,70 180,50 120,50" fill="#87ceeb" stroke="#333" stroke-width="2"/>
+                            <!-- Tail Lights -->
+                            <rect x="60" y="80" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="2" rx="3"/>
+                            <rect x="210" y="80" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="2" rx="3"/>
+                            <!-- Trunk -->
+                            <rect x="100" y="105" width="100" height="8" fill="#bbb" stroke="#333" stroke-width="1"/>
+                            <!-- Bumper -->
+                            <rect x="60" y="110" width="180" height="15" fill="#888" stroke="#333" stroke-width="2" rx="4"/>
+                            <!-- License Plate -->
+                            <rect x="130" y="112" width="40" height="10" fill="#fff" stroke="#333" stroke-width="1"/>
+                            <!-- Exhaust -->
+                            <rect x="200" y="120" width="15" height="8" fill="#444" stroke="#333" stroke-width="1" rx="2"/>
+                            <!-- Wheels -->
+                            <circle cx="90" cy="145" r="25" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="90" cy="145" r="15" fill="#444" stroke="#555" stroke-width="2"/>
+                            <circle cx="210" cy="145" r="25" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="210" cy="145" r="15" fill="#444" stroke="#555" stroke-width="2"/>
+                        </svg>
+                        <canvas id="carBack" class="drawing-canvas"></canvas>
+                    </div>
+                    <div class="view-notes">📝 اخترق على أي أضرار في الخلف</div>
+                </div>
+                
+                <!-- LEFT SIDE VIEW -->
+                <div class="car-view">
+                    <div class="view-title">🟢 الجانب الأيسر</div>
+                    <div class="car-diagram">
+                        <svg class="sedan-front" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Body -->
+                            <ellipse cx="150" cy="110" rx="110" ry="40" fill="#ddd" stroke="#333" stroke-width="3"/>
+                            <!-- Roof -->
+                            <rect x="80" y="75" width="140" height="30" fill="#bbb" stroke="#333" stroke-width="2" rx="5"/>
+                            <!-- Windows -->
+                            <rect x="90" y="78" width="50" height="22" fill="#87ceeb" stroke="#333" stroke-width="1.5" rx="2"/>
+                            <rect x="145" y="78" width="50" height="22" fill="#87ceeb" stroke="#333" stroke-width="1.5" rx="2"/>
+                            <!-- Door Handle -->
+                            <rect x="135" y="110" width="15" height="4" fill="#555" stroke="#333" stroke-width="1" rx="1"/>
+                            <!-- Side Mirror -->
+                            <ellipse cx="65" cy="95" rx="8" ry="12" fill="#888" stroke="#333" stroke-width="2"/>
+                            <!-- Front Light -->
+                            <ellipse cx="245" cy="105" rx="10" ry="15" fill="#ffeb3b" stroke="#333" stroke-width="2"/>
+                            <!-- Rear Light -->
+                            <ellipse cx="55" cy="105" rx="10" ry="15" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                            <!-- Bottom Line -->
+                            <line x1="40" y1="135" x2="260" y2="135" stroke="#333" stroke-width="2"/>
+                            <!-- Wheels -->
+                            <circle cx="80" cy="140" r="22" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="80" cy="140" r="12" fill="#444" stroke="#555" stroke-width="2"/>
+                            <circle cx="220" cy="140" r="22" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="220" cy="140" r="12" fill="#444" stroke="#555" stroke-width="2"/>
+                        </svg>
+                        <canvas id="carLeft" class="drawing-canvas"></canvas>
+                    </div>
+                    <div class="view-notes">📝 اخترق على الجانب الأيسر</div>
+                </div>
+                
+                <!-- RIGHT SIDE VIEW -->
+                <div class="car-view">
+                    <div class="view-title">🔵 الجانب الأيمن</div>
+                    <div class="car-diagram">
+                        <svg class="sedan-front" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Body (mirrored) -->
+                            <ellipse cx="150" cy="110" rx="110" ry="40" fill="#ddd" stroke="#333" stroke-width="3"/>
+                            <!-- Roof -->
+                            <rect x="80" y="75" width="140" height="30" fill="#bbb" stroke="#333" stroke-width="2" rx="5"/>
+                            <!-- Windows (mirrored) -->
+                            <rect x="105" y="78" width="50" height="22" fill="#87ceeb" stroke="#333" stroke-width="1.5" rx="2"/>
+                            <rect x="160" y="78" width="50" height="22" fill="#87ceeb" stroke="#333" stroke-width="1.5" rx="2"/>
+                            <!-- Door Handle -->
+                            <rect x="150" y="110" width="15" height="4" fill="#555" stroke="#333" stroke-width="1" rx="1"/>
+                            <!-- Side Mirror (right) -->
+                            <ellipse cx="235" cy="95" rx="8" ry="12" fill="#888" stroke="#333" stroke-width="2"/>
+                            <!-- Front Light (mirrored) -->
+                            <ellipse cx="55" cy="105" rx="10" ry="15" fill="#ffeb3b" stroke="#333" stroke-width="2"/>
+                            <!-- Rear Light (mirrored) -->
+                            <ellipse cx="245" cy="105" rx="10" ry="15" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                            <!-- Bottom Line -->
+                            <line x1="40" y1="135" x2="260" y2="135" stroke="#333" stroke-width="2"/>
+                            <!-- Wheels -->
+                            <circle cx="80" cy="140" r="22" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="80" cy="140" r="12" fill="#444" stroke="#555" stroke-width="2"/>
+                            <circle cx="220" cy="140" r="22" fill="#333" stroke="#222" stroke-width="3"/>
+                            <circle cx="220" cy="140" r="12" fill="#444" stroke="#555" stroke-width="2"/>
+                        </svg>
+                        <canvas id="carRight" class="drawing-canvas"></canvas>
+                    </div>
+                    <div class="view-notes">📝 اخترق على الجانب الأيمن</div>
+                </div>
             </div>
         </div>
         
-        <!-- ===== TERMS ===== -->
+        <!-- TERMS -->
         <div class="section-header">📋 الشروط والأحكام العامة</div>
-        <div class="terms-section">
+        <div class="terms-section avoid-break">
             <h4>🔹 الشروط الأساسية:</h4>
             1. المستأجر مسؤول عن السيارة طوال فترة الإيجار من لحظة الاستلام.<br>
             2. يتعين إعادة السيارة بنفس الحالة التي تم استلامها فيها.<br>
             3. المستأجر مسؤول عن جميع المخالفات المرورية والغرامات.<br>
             4. غرامة التأخير عند الإعادة: <?php echo formatCurrency(LATE_RETURN_FEE); ?> لكل ساعة.<br>
             5. التأمين ينطبق على الحوادث غير المقصودة فقط.<br>
-            6. أي أضرار متعمدة لا تغطيها بوليشة التأمين.<br>
+            6. أي أضرار متعمدة لا تغطيها بوليشة التأمين.
         </div>
         
-        <!-- ===== SIGNATURES ===== -->
+        <!-- SIGNATURES -->
         <div class="section-header">✍️ التوقيعات والاتفاق</div>
-        <div class="signature-section">
+        <div class="signature-section avoid-break">
             <div class="signature-box">
                 <canvas id="customerSig" class="signature-canvas"></canvas>
                 <div class="signature-line">
@@ -677,58 +817,61 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </div>
         </div>
         
-        <!-- PAGE BREAK FOR PROMISSORY -->
+        <!-- PROMISSORY NOTE -->
         <?php if ($with_promissory && $remaining_amount > 0): ?>
         <div class="page-break"></div>
         
-        <!-- ===== PROMISSORY NOTE ===== -->
-        <div class="header">
-            <div style="grid-column: 1 / -1; text-align: center;">
-                <h1 style="margin: 0; font-size: 28px;">🧾 كمبيالة / سند إذني</h1>
-            </div>
-        </div>
-        
-        <div style="padding: 30px; text-align: center; line-height: 2.5; font-size: 13px;">
-            <p>أتعهد أنا المضموم توقيعه أدناه</p>
-            <p><strong><?php echo htmlspecialchars($rental['customer_name']); ?></strong></p>
-            <p>الجنسية: فلسطيني | رقم الهوية: <strong><?php echo $rental['id_number']; ?></strong></p>
-            
-            <div style="margin: 30px 0; border: 3px solid #ff6f00; padding: 20px; border-radius: 10px; background: #fff3e0;">
-                <p style="font-size: 11px; margin-bottom: 10px;">بدفع مبلغ وقدره</p>
-                <p style="font-size: 24px; font-weight: 900; color: #ff6f00; margin: 0;"><?php echo formatCurrency($remaining_amount); ?></p>
-                <p style="font-size: 12px; color: #666; margin-top: 10px;">(<?php echo numberToArabicWords($remaining_amount); ?> شيكل فقط لا غير)</p>
+        <div class="promissory-note">
+            <div class="promissory-header">
+                <h2>🧾 كمبيالة / سند إذني</h2>
+                <div class="subtitle">Promissory Note</div>
             </div>
             
-            <p>لصالح: <strong><?php echo COMPANY_NAME; ?></strong></p>
-            <p>بتاريخ: <strong><?php echo formatDate($rental['end_date']); ?></strong></p>
-            <p>المرجع: عقد إيجار رقم <strong><?php echo $rental['rental_number']; ?></strong></p>
-        </div>
-        
-        <div style="padding: 0 30px; margin-top: 40px;">
-            <div class="signature-section" style="margin: 0;">
-                <div></div>
-                <div class="signature-box">
-                    <canvas id="promissorySig" class="signature-canvas"></canvas>
-                    <div class="signature-line">
-                        <strong>توقيع المدين</strong>
-                        <?php echo htmlspecialchars($rental['customer_name']); ?>
+            <div class="promissory-body">
+                <p>أتعهد أنا الموقع أدناه</p>
+                <span class="debtor-name"><?php echo htmlspecialchars($rental['customer_name']); ?></span>
+                <p>رقم الهوية: <strong><?php echo $rental['id_number']; ?></strong> | الجنسية: فلسطيني</p>
+                
+                <div class="amount-box">
+                    <div class="label">بدفع مبلغ وقدره</div>
+                    <div class="amount"><?php echo formatCurrency($remaining_amount); ?></div>
+                    <div class="words">(<?php echo numberToArabicWords($remaining_amount); ?> شيكل فقط لا غير)</div>
+                </div>
+                
+                <div class="promissory-details">
+                    <p>لصالح: <strong><?php echo COMPANY_NAME; ?></strong></p>
+                    <p>بتاريخ: <strong><?php echo formatDate($rental['end_date']); ?></strong></p>
+                    <p>المرجع: عقد إيجار رقم <strong><?php echo $rental['rental_number']; ?></strong></p>
+                    <p style="margin-top: 15px; font-size: 10px; color: #666;">
+                        هذا السند قابل للتداول وملزم قانونياً، وفي حالة التأخر عن السداد يحق للدائن اتخاذ الإجراءات القانونية
+                    </p>
+                </div>
+                
+                <div class="promissory-signature">
+                    <div></div>
+                    <div class="signature-box">
+                        <canvas id="promissorySig" class="signature-canvas"></canvas>
+                        <div class="signature-line">
+                            <strong>توقيع المدين</strong>
+                            <?php echo htmlspecialchars($rental['customer_name']); ?>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <?php endif; ?>
         
-        <!-- ===== FOOTER ===== -->
+        <!-- FOOTER -->
         <div class="footer">
             <p>🇵🇸 نظام تأجير السيارات | Made with ❤️ in Palestine</p>
             <p>هذا العقد صادر إلكترونياً وله نفس قيمة العقد الورقي</p>
-            <p style="margin-top: 10px; color: #999;">© <?php echo date('Y'); ?> <?php echo COMPANY_NAME; ?> - جميع الحقوق محفوظة</p>
+            <p style="margin-top: 8px; color: #999;">© <?php echo date('Y'); ?> <?php echo COMPANY_NAME; ?> - جميع الحقوق محفوظة</p>
         </div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
-        // Initialize all canvas drawing
+        // Canvas Drawing Setup
         function setupCanvas(canvasId) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
@@ -737,26 +880,42 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             let isDrawing = false;
             let lastX, lastY;
             
+            // Set canvas size
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
             function getCoords(e) {
                 const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                if (e.touches && e.touches[0]) {
+                    return {
+                        x: (e.touches[0].clientX - rect.left) * scaleX,
+                        y: (e.touches[0].clientY - rect.top) * scaleY
+                    };
+                }
                 return {
-                    x: e.clientX - rect.left || (e.touches && e.touches[0].clientX - rect.left) || 0,
-                    y: e.clientY - rect.top || (e.touches && e.touches[0].clientY - rect.top) || 0
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
                 };
             }
             
-            canvas.addEventListener('mousedown', (e) => {
+            function startDrawing(e) {
                 isDrawing = true;
                 const { x, y } = getCoords(e);
                 lastX = x;
                 lastY = y;
-            });
+            }
             
-            canvas.addEventListener('mousemove', (e) => {
+            function draw(e) {
                 if (!isDrawing) return;
+                e.preventDefault();
+                
                 const { x, y } = getCoords(e);
                 
-                ctx.strokeStyle = '#1a237e';
+                ctx.strokeStyle = '#d32f2f';
                 ctx.lineWidth = 3;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -768,61 +927,32 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 
                 lastX = x;
                 lastY = y;
-            });
+            }
             
-            canvas.addEventListener('mouseup', () => { isDrawing = false; });
-            canvas.addEventListener('mouseout', () => { isDrawing = false; });
+            function stopDrawing() {
+                isDrawing = false;
+            }
             
-            // Touch events
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                isDrawing = true;
-                const { x, y } = getCoords(e);
-                lastX = x;
-                lastY = y;
-            });
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
             
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (!isDrawing) return;
-                const { x, y } = getCoords(e);
-                
-                ctx.strokeStyle = '#1a237e';
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                
-                lastX = x;
-                lastY = y;
-            });
-            
-            canvas.addEventListener('touchend', (e) => { 
-                e.preventDefault();
-                isDrawing = false; 
-            });
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
         }
         
         // Initialize all canvases
-        setupCanvas('carFront');
-        setupCanvas('carBack');
-        setupCanvas('carLeft');
-        setupCanvas('carRight');
-        setupCanvas('customerSig');
-        setupCanvas('companySig');
-        setupCanvas('promissorySig');
+        ['carFront', 'carBack', 'carLeft', 'carRight', 'customerSig', 'companySig', 'promissorySig'].forEach(setupCanvas);
         
         // Clear all drawings
         function clearDrawings() {
-            const canvases = ['carFront', 'carBack', 'carLeft', 'carRight', 'customerSig', 'companySig', 'promissorySig'];
-            canvases.forEach(id => {
+            ['carFront', 'carBack', 'carLeft', 'carRight', 'customerSig', 'companySig', 'promissorySig'].forEach(id => {
                 const canvas = document.getElementById(id);
                 if (canvas) {
-                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
             });
         }
@@ -834,9 +964,9 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                 margin: 5,
                 filename: 'contract-<?php echo $rental['rental_number']; ?>-<?php echo date('Y-m-d'); ?>.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+                html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: 'avoid-all' }
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             
             html2pdf().set(opt).from(element).save();
@@ -863,6 +993,13 @@ function numberToArabicWords($number) {
         $hundred = floor($number / 100);
         $remainder = $number % 100;
         $result = $hundreds[$hundred];
+        if ($remainder > 0) $result .= ' و' . numberToArabicWords($remainder);
+        return $result;
+    }
+    if ($number < 1000000) {
+        $thousand = floor($number / 1000);
+        $remainder = $number % 1000;
+        $result = ($thousand == 1 ? 'ألف' : ($thousand == 2 ? 'ألفان' : numberToArabicWords($thousand) . ' ألف'));
         if ($remainder > 0) $result .= ' و' . numberToArabicWords($remainder);
         return $result;
     }
