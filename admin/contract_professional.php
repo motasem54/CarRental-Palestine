@@ -15,13 +15,13 @@ if (!isset($_GET['id'])) {
 
 $rental_id = (int)$_GET['id'];
 
-// Get rental details
+// Get rental details - بدون image_url
 $stmt = $db->prepare("
     SELECT r.*, 
            c.full_name as customer_name, c.phone as customer_phone, 
            c.address as customer_address, c.id_number, c.driver_license,
            car.brand, car.model, car.year, car.color, car.plate_number,
-           car.type as car_type, car.seats, car.transmission, car.image_url,
+           car.type as car_type, car.seats, car.transmission,
            u.full_name as created_by_name
     FROM rentals r
     JOIN customers c ON r.customer_id = c.id
@@ -576,7 +576,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             </tr>
         </table>
         
-        <!-- ===== INSPECTION FORM WITH REAL CAR IMAGES ===== -->
+        <!-- ===== INSPECTION FORM WITH CAR IMAGES ===== -->
         <div class="page-break"></div>
         
         <div class="inspection-header">🔍 نموذج فحص حالة السيارة - اخترق على الرسومات التالية</div>
@@ -585,9 +585,6 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
             <!-- FRONT -->
             <div class="car-image-item">
                 <div class="car-position">🔴 الجهة الأمامية</div>
-                <?php if($rental['image_url']): ?>
-                <img src="<?php echo htmlspecialchars($rental['image_url']); ?>" class="car-image" alt="Front">
-                <?php else: ?>
                 <svg class="car-image" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
                     <rect x="30" y="40" width="140" height="80" fill="#ddd" stroke="#333" stroke-width="2"/>
                     <circle cx="60" cy="110" r="15" fill="#333"/>
@@ -595,8 +592,8 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                     <rect x="50" y="50" width="30" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
                     <rect x="120" y="50" width="30" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
                     <polygon points="100,40 130,40 100,20" fill="#666"/>
+                    <rect x="70" y="25" width="60" height="12" fill="#f4f4f4" stroke="#333" stroke-width="1"/>
                 </svg>
-                <?php endif; ?>
                 <canvas id="carFront" class="drawing-canvas"></canvas>
                 <div class="drawing-notes">📋 اخترق على أي خدوش أو تجنيشات في الأمام</div>
             </div>
@@ -610,6 +607,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                     <circle cx="140" cy="110" r="15" fill="#333"/>
                     <rect x="50" y="50" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="1"/>
                     <rect x="120" y="50" width="30" height="20" fill="#ff6b6b" stroke="#333" stroke-width="1"/>
+                    <rect x="70" y="115" width="60" height="8" fill="#555" stroke="#333" stroke-width="1"/>
                 </svg>
                 <canvas id="carBack" class="drawing-canvas"></canvas>
                 <div class="drawing-notes">📋 اخترق على أي أضرار في الخلف</div>
@@ -625,6 +623,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                     <rect x="70" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
                     <rect x="95" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
                     <line x1="20" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2"/>
+                    <polygon points="160,85 175,95 160,105" fill="#ff9800"/>
                 </svg>
                 <canvas id="carLeft" class="drawing-canvas"></canvas>
                 <div class="drawing-notes">📋 اخترق على الجنب الأيسر</div>
@@ -640,6 +639,7 @@ $page_title = 'عقد إيجار رقم ' . $rental['rental_number'];
                     <rect x="70" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
                     <rect x="95" y="60" width="35" height="20" fill="#87ceeb" stroke="#333" stroke-width="1"/>
                     <line x1="20" y1="100" x2="180" y2="100" stroke="#333" stroke-width="2"/>
+                    <polygon points="25,85 40,95 25,105" fill="#ff9800"/>
                 </svg>
                 <canvas id="carRight" class="drawing-canvas"></canvas>
                 <div class="drawing-notes">📋 اخترق على الجانب الأيمن</div>
